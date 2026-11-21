@@ -318,13 +318,11 @@
 
 <div id="toast"></div>
 
-<!-- Исходный код скрипта. Хранится как текст (не выполняется). -->
-<script type="text/plain" id="script-src">
 // ==UserScript==
 // @name         МЭШ Layout Editor + Theme Studio PRO
 // @namespace    meshlayout
-// @version      1.9.0
-// @description  Визуальный редактор МЭШ: стекло без мерцания, исправлен белый hover, анимация при листании, замена картинок, захват блоков целиком, свой шрифт с компьютера, режим экономии для телефонов
+// @version      1.9.1
+// @description  Визуальный редактор МЭШ: стекло без мерцания, исправлены белые плашки/ромбики и цвет текста в тёмной теме, анимация при листании, замена картинок, захват блоков целиком, свой шрифт, режим экономии для телефонов
 // @author       you
 // @match        https://school.mos.ru/*
 // @match        https://*.mos.ru/*
@@ -346,9 +344,6 @@
   const normCls = (s) => (s || '').split(/\s+/).filter(x => x && !x.startsWith('mes-')).sort().join(' ');
   /* =========================================================
    * 0. РЕЖИМ ЭКОНОМИИ (телефоны / слабые устройства)
-   *    Внешний вид не меняется — уменьшается только нагрузка:
-   *    меньше blur, 30 fps для эффектов, фон без background-attachment:fixed,
-   *    реже сканирование страницы, уменьшение больших картинок.
    * ========================================================= */
   const LITE = (() => {
     try {
@@ -425,7 +420,6 @@
       if (!blob) return null;
       return (this._urls[key] = URL.createObjectURL(blob));
     },
-    // освобождаем память: отзываем blob-URL и удаляем старый файл
     async drop(key) {
       if (!key) return;
       if (this._urls[key]) { try { URL.revokeObjectURL(this._urls[key]); } catch (e) {} delete this._urls[key]; }
@@ -459,7 +453,6 @@
       }
       return part;
     },
-    // точный путь до одного элемента (для фоновых картинок)
     pathFor(el) {
       const parts = [];
       for (let p = el, d = 0; p && p !== document.body && d < 6; p = p.parentElement, d++) {
@@ -508,7 +501,6 @@
       misc: { dark: false, autoDark: false, radius: null, cursor: '', glass: false, glassOpacity: 0.25, glassBlur: 10, anim: 'fade' },
     };
   }
-  // сохранение с задержкой — слайдеры больше не пишут в хранилище на каждый пиксель
   const commit = debounce(() => Storage.save(App.state), 300);
   function commitNow() { Storage.save(App.state); }
   window.addEventListener('pagehide', commitNow);
@@ -575,8 +567,6 @@
   };
   /* =========================================================
    * 4b. ЗАМЕНА КАРТИНОК НА САЙТЕ
-   *     <img> — по исходному адресу (работает на всех таких же картинках)
-   *     фон (background-image) — по точному пути элемента
    * ========================================================= */
   const ImageReplacer = {
     entry(kind, key) { return getImages().find(e => e.kind === kind && e.key === key); },
@@ -587,7 +577,6 @@
       const m = bi.match(/url\(["']?(.*?)["']?\)/);
       return m ? m[1] : null;
     },
-    // верхняя картинка под курсором (даже если сверху прозрачный оверлей)
     findImg(x, y) {
       const stack = document.elementsFromPoint(x, y).slice(0, 6);
       for (const el of stack) {
@@ -596,7 +585,6 @@
       }
       return null;
     },
-    // какая картинка относится к выбранному элементу
     target(el) {
       if (!el) return null;
       if (el.tagName === 'IMG') return el;
@@ -674,7 +662,7 @@
     }
   };
   /* =========================================================
-   * 4c. ЗАМЕНА ТЕКСТА (по исходному тексту — переживает листание дней)
+   * 4c. ЗАМЕНА ТЕКСТА
    * ========================================================= */
   const TextEditor = {
     orig: new WeakMap(), applied: new WeakMap(),
@@ -710,7 +698,6 @@
         this.orig.delete(n); this.applied.delete(n);
       });
     },
-    // собственный текст элемента: что сейчас показано и каким был оригинал
     part(el) {
       if (!el) return null;
       for (const n of el.childNodes) {
@@ -734,11 +721,10 @@
     }
   };
   /* =========================================================
-   * 4d. БЛОКИ: захват целого списка уроков + разбор на части
+   * 4d. БЛОКИ
    * ========================================================= */
   const Blocks = {
     sig(n) { return n.tagName + '|' + normCls(n.getAttribute('class')); },
-    // ближайший контейнер, в котором лежит несколько одинаковых элементов (список уроков)
     findBlock(el) {
       let node = el;
       while (node && node !== document.body && node.parentElement) {
@@ -793,21 +779,32 @@
   /* =========================================================
    * 5. SURFACES — эвристика по фактическому цвету элементов.
    *    data-mes-s  = 1|2  светлая «поверхность» (2 = вложенная)
-   *    data-mes-m  = серая поверхность
+   *    data-mes-m  = серая поверхность / плашка
    *    data-mes-w  = огромная обёртка страницы
    *    data-mes-t  = 1|2  тёмный/серый текст (для тёмной темы)
    *    data-mes-bc = светлая рамка
    *    data-mes-pb = светлый ::before/::after (только при наведении)
    *    data-mes-a  = элемент анимируется прямо сейчас
    *
-   *    Анти-мерцание: новые узлы обрабатываются СИНХРОННО в колбэке
-   *    MutationObserver (до кадра). Hover-состояния — в requestAnimationFrame
-   *    (тоже до отрисовки), поэтому «белых вспышек» при наведении нет.
+   *    v1.9.1:
+   *    • rk — «как элемент выглядит после наших правок»: 'dark' (будет тёмным),
+   *      'keep' (остаётся как есть: цветной/светлый без текста). Цвет текста
+   *      выбирается по rk ближайшего предка, а не по исходному цвету фона.
+   *    • Мелкие светлые плашки С ТЕКСТОМ (ромбики с цифрами, «Год», «Школа»,
+   *      бейджи) тоже темнеют — текст внутри больше не «белое на белом».
+   *    • Тонкие светлые полоски (рейтинг-бары) прозрачны для выбора цвета текста.
+   *    • Градиент без насыщенных цветов (линии сетки графика) не считается
+   *      цветным фоном — текст поверх него светлеет.
+   *    • Элементы, у которых поменялся класс / появился текст, ПЕРЕПРОВЕРЯЮТСЯ
+   *      (раньше они считались «уже виденными» и оставались белыми).
    * ========================================================= */
   const Surfaces = {
     seen: new WeakSet(),
     kind: new WeakMap(),
     surf: new WeakSet(),
+    rk: new WeakMap(),
+    hk: null,
+    quiet: false,
     token: 0,
     animIdx: 0,
     ATTRS: ['data-mes-s', 'data-mes-m', 'data-mes-w', 'data-mes-t', 'data-mes-bc', 'data-mes-a', 'data-mes-pb'],
@@ -831,9 +828,14 @@
     },
     reset() {
       this.token++;
-      this.seen = new WeakSet(); this.kind = new WeakMap(); this.surf = new WeakSet();
+      this.seen = new WeakSet(); this.kind = new WeakMap(); this.surf = new WeakSet(); this.rk = new WeakMap();
       this.rec.clear();
       $$(this.ATTRS.map(a => `[${a}]`).join(',')).forEach(el => this.ATTRS.forEach(a => el.removeAttribute(a)));
+    },
+    // забыть всё про элемент, чтобы visit() заново его оценил (анимацию не трогаем)
+    forget(el) {
+      this.seen.delete(el); this.kind.delete(el); this.surf.delete(el); this.rk.delete(el);
+      for (const a of this.ATTRS) if (a !== 'data-mes-a') el.removeAttribute(a);
     },
     scan() {
       if (!this.needSurf()) return;
@@ -852,7 +854,8 @@
       };
       step();
     },
-    fast(nodes) {
+    // nodes — новые/изменённые узлы; force — Set узлов, которые нужно перепроверить с нуля
+    fast(nodes, force) {
       if (!this.needSurf() || !nodes.length) return;
       let list = Array.from(new Set(nodes));
       if (list.length <= 500) list.sort((a, b) => (a.compareDocumentPosition(b) & 4 ? -1 : 1));
@@ -861,24 +864,47 @@
       outer: for (const root of list) {
         if (!root.isConnected) continue;
         if (budget-- <= 0) break;
+        const f = !!(force && force.has(root));
+        this.quiet = f;
+        if (f) this.forget(root);
         try { this.visit(root, ops); } catch (e) {}
         const all = root.querySelectorAll('*');
         for (let i = 0; i < all.length; i++) {
           if (budget-- <= 0) break outer;
+          if (f && i < 80) this.forget(all[i]);
           try { this.visit(all[i], ops); } catch (e) {}
         }
       }
+      this.quiet = false;
       this.applyOps(ops);
     },
-    nearestKind(el) {
+    // может ли элемент стать «плашкой» (маленький, не тёмный) — нужен для перепроверки при появлении текста
+    maybeChip(el) {
+      if (!this.seen.has(el) || this.rk.get(el) === 'dark') return false;
+      const r = el.getBoundingClientRect();
+      return r.width > 0 && r.width < 400 && r.height < 120;
+    },
+    // как будет выглядеть фон под элементом (включая сам элемент): 'dark' | 'keep' | null (фон страницы)
+    renderOf(el) {
       for (let p = el; p && p !== document.body; p = p.parentElement) {
-        const k = this.kind.get(p); if (k) return k;
+        const r = (this.hk && this.hk.get(p)) || this.rk.get(p);
+        if (r) return r;
       }
       return null;
     },
     hasSurfAncestor(el) {
       for (let p = el.parentElement; p && p !== document.body; p = p.parentElement) if (this.surf.has(p)) return true;
       return false;
+    },
+    // цвет градиента/картинки: 'c' — реально цветной фон, null — прозрачный/серый (линии сетки и т.п.)
+    imageKind(bi) {
+      if (bi.indexOf('url(') >= 0) return 'c';
+      const cols = bi.match(/rgba?\([^)]+\)/g) || [];
+      for (const s of cols) {
+        const c = this.parse(s);
+        if (c && c.a > 0.3 && this.sat(c) > 60) return 'c';
+      }
+      return null;
     },
     // hover=true — «пробный» визит без запоминания (для наведения/фокуса)
     visit(el, ops, hover) {
@@ -898,30 +924,44 @@
         const lum = this.lum(bg);
         k = this.sat(bg) > 60 ? 'c' : lum > 0.78 ? 'l' : lum > 0.45 ? 'm' : 'd';
       } else if (cs.backgroundImage && cs.backgroundImage !== 'none') {
-        k = 'c';
+        k = this.imageKind(cs.backgroundImage);
       }
       if (k && !hover) this.kind.set(el, k);
+      // rt — как элемент выглядит ПОСЛЕ наших правок
+      let rt = null;
+      if (k === 'c' || k === 'd') rt = 'keep';
       if (k === 'l' || k === 'm') {
         const W = window.innerWidth, H = window.innerHeight;
         if (rect.width >= W * 0.95 && rect.height >= H * 0.8) {
           ops.push([el, 'data-mes-w', '1']);
+          rt = 'dark';
         } else if (rect.width >= 60 && rect.height >= 28) {
           const nested = this.hasSurfAncestor(el);
           if (!hover) this.surf.add(el);
           ops.push([el, 'data-mes-s', nested ? '2' : '1']);
           if (k === 'm') ops.push([el, 'data-mes-m', '1']);
-          if (!hover && !nested && rect.width > 200 && rect.height > 40 && rect.height < 600 && cs.position !== 'fixed' && cs.position !== 'sticky') {
+          rt = 'dark';
+          if (!hover && !this.quiet && !nested && rect.width > 200 && rect.height > 40 && rect.height < 600 && cs.position !== 'fixed' && cs.position !== 'sticky') {
             ops.push([el, 'data-mes-a', '1']);
             ops.push([el, '--mes-i', Math.min(this.animIdx++, 8)]);
           }
+        } else if (rect.width >= 20 && rect.height >= 20) {
+          // мелкая светлая плашка: ромбик с цифрой, «Год», «Школа», бейдж…
+          const tx = el.textContent;
+          if (tx && tx.length < 80 && tx.trim()) {
+            ops.push([el, 'data-mes-s', '2']);
+            ops.push([el, 'data-mes-m', '1']);
+            rt = 'dark';
+          } else rt = 'keep'; // светлая иконка/кнопка без текста — остаётся белой, иконка тёмная
         }
+        // тонкие полоски (< 20px) — прозрачны для выбора цвета текста (rt = null)
       }
+      if (rt) (hover ? this.hk : this.rk).set(el, rt);
       if (parseFloat(cs.borderTopWidth) > 0 && cs.borderTopStyle !== 'none') {
         const bc = this.parse(cs.borderTopColor);
         if (bc && bc.a > 0.2 && this.lum(bc) > 0.8 && this.sat(bc) < 40) ops.push([el, 'data-mes-bc', '1']);
       }
       if (hover) {
-        // светлые ::before / ::after, которые сайт включает при наведении
         for (const ps of ['::before', '::after']) {
           const pc = getComputedStyle(el, ps);
           if (!pc || pc.content === 'none' || pc.content === 'normal' || pc.display === 'none') continue;
@@ -936,8 +976,9 @@
       if (hasText) {
         const tc = this.parse(cs.color);
         if (tc && tc.a > 0.3 && this.sat(tc) < 50) {
-          const bk = (hover && k) ? k : this.nearestKind(el);
-          if (bk !== 'c' && bk !== 'd') {
+          // светлеем текст только если реально под ним будет тёмный фон (или фон страницы)
+          const bk = this.renderOf(el);
+          if (bk !== 'keep') {
             const l = this.lum(tc);
             if (l < 0.3) ops.push([el, 'data-mes-t', '1']);
             else if (l < 0.55) ops.push([el, 'data-mes-t', '2']);
@@ -955,16 +996,21 @@
       const keep = new Map();
       const keepAdd = (el, k) => { let s = keep.get(el); if (!s) keep.set(el, (s = new Set())); s.add(k); };
       if (this.needSurf() && t && t.nodeType === 1 && !t.closest('#mes-editor-root')) {
-        const list = [];
+        // порядок: от внешнего предка к целевому элементу, затем его потомки —
+        // чтобы цвет текста считался по уже определённому фону родителей
+        const chain = [];
         let p = t;
-        for (let i = 0; i < 6 && p && p !== document.body && p !== document.documentElement; i++, p = p.parentElement) list.push(p);
+        for (let i = 0; i < 6 && p && p !== document.body && p !== document.documentElement; i++, p = p.parentElement) chain.push(p);
+        chain.reverse();
+        const list = chain.slice();
         const kids = t.querySelectorAll('*');
         const lim = Math.min(kids.length, LITE ? 25 : 60);
         for (let i = 0; i < lim; i++) list.push(kids[i]);
-        // уже помеченные нами элементы цепочки остаются помеченными, пока курсор над ними
         for (const el of list) { const m = this.rec.get(el); if (m) m.forEach((_, k) => keepAdd(el, k)); }
         const ops = [];
+        this.hk = new WeakMap();
         for (const el of list) { try { this.visit(el, ops, true); } catch (e) {} }
+        this.hk = null;
         for (const [el, k, v] of ops) {
           if (k.charCodeAt(0) === 45) continue;
           let m = this.rec.get(el);
@@ -975,7 +1021,6 @@
         }
       }
       clearTimeout(this.htimer);
-      // снимаем временные метки с задержкой — пока сайт плавно гасит свой hover-фон
       this.htimer = setTimeout(() => this.hoverClean(keep), 350);
     },
     hoverClean(keep) {
@@ -989,13 +1034,11 @@
     }
   };
   /* =========================================================
-   * 5b. АНИМАЦИЯ ПОЯВЛЕНИЯ новых блоков (листание дней, уроки и т.д.)
-   *     Анимируются добавленные в DOM узлы — не зависит от того,
-   *     вложены ли они в уже существующую «поверхность».
+   * 5b. АНИМАЦИЯ ПОЯВЛЕНИЯ новых блоков
    * ========================================================= */
   const Anim = {
     lastParent: new WeakMap(),
-    check(el) { // 0 — пропустить, 1 — подходит, 2 — прозрачная обёртка (display: contents)
+    check(el) {
       if (!el || el.nodeType !== 1) return 0;
       const tag = el.tagName;
       if (/^(SCRIPT|STYLE|NOSCRIPT|IMG|CANVAS|VIDEO|IFRAME|SVG|LINK|META)$/i.test(tag)) return 0;
@@ -1043,7 +1086,6 @@
       }
     }
   };
-  // после окончания анимации снимаем метку (экономим память и позволяем анимировать снова)
   document.addEventListener('animationend', (e) => {
     const el = e.target;
     if (el && el.hasAttribute && el.hasAttribute('data-mes-a') && /^mes/.test(e.animationName)) el.removeAttribute('data-mes-a');
@@ -1073,7 +1115,6 @@
       const body = document.body;
       let layer = '';
       let video = null;
-      // на телефонах background-attachment:fixed очень тяжёлый — используем фиксированный слой
       const fx = LITE ? '' : ' fixed';
       const dim = misc.dark ? `linear-gradient(rgba(0,0,0,.5),rgba(0,0,0,.5)) center/cover no-repeat${fx}, ` : '';
       let heavy = false;
@@ -1125,7 +1166,6 @@
     async applyFonts(f) {
       let style = $('#mes-theme-fonts');
       if (!style) { style = document.createElement('style'); style.id = 'mes-theme-fonts'; document.head.appendChild(style); }
-      // шрифт-файл с компьютера: грузим из ArrayBuffer (не зависит от CSP сайта)
       let custom = false;
       if (f.fileKey) {
         if (this._fontKey !== f.fileKey) {
@@ -1212,9 +1252,12 @@
             background-color: rgba(40,44,52,calc(var(--mes-g-op) * .7)) !important;
             box-shadow: inset 0 0 0 1px rgba(255,255,255,.08) !important;
           }
+          html[data-mes-glass][data-mes-dark] [data-mes-s][data-mes-m] {
+            background-color: rgba(60,64,74,calc(var(--mes-g-op) * .9 + .1)) !important;
+          }
         `);
       }
-      /* ---------- Анимации: активна только ОДНА (m.anim) ---------- */
+      /* ---------- Анимации ---------- */
       const sx = LITE ? '56px' : '90px';
       const k = LITE ? 0.7 : 1;
       R.push(`
@@ -1275,7 +1318,7 @@
     }
   };
   /* =========================================================
-   * 8. EFFECTS ENGINE (на телефоне — 30 fps и меньше частиц; в фоне вкладки не работает)
+   * 8. EFFECTS ENGINE
    * ========================================================= */
   const EffectsEngine = {
     canvas: null, ctx: null, particles: [], raf: null, mode: null, cfg: null, key: '', last: 0,
@@ -1354,11 +1397,9 @@
     },
     onDown(e) {
       if (!App.editing || e.target.closest('#mes-editor-root')) return;
-      // картинка под курсором имеет приоритет (даже под оверлеем)
       const img = ImageReplacer.findImg(e.clientX, e.clientY);
       let el = img || e.target.closest('*');
       if (!el || !SelectorRegistry.isEditable(el)) return;
-      // Alt + клик — захватить сразу весь блок (список уроков целиком)
       if (e.altKey) el = Blocks.findBlock(el);
       this.dragging = { el, startX: e.clientX, startY: e.clientY, moved: false };
       App.select(el);
@@ -1405,7 +1446,7 @@
     }
   };
   /* =========================================================
-   * 10. EDITOR UI — монохромное меню в стиле Apple
+   * 10. EDITOR UI
    * ========================================================= */
   const UI_CSS = `
     #mes-editor-root {
@@ -1488,7 +1529,6 @@
     #mes-editor-root .mes-foot { display: flex; gap: 8px; margin-top: 18px; }
     #mes-editor-root .mes-foot .mes-btn { margin-top: 0; font-size: 13px; padding: 11px 8px; }
     #mes-editor-root .mes-foot .mes-btn.ghost { flex: none; width: auto; padding: 11px 14px; background: transparent; box-shadow: inset 0 0 0 1px rgba(255,255,255,.22); color: rgba(255,255,255,.8); }
-    /* структура блока */
     #mes-editor-root .mes-parts { max-height: 250px; overflow-y: auto; overscroll-behavior: contain; }
     #mes-editor-root .mes-part { position: relative; display: flex; align-items: center; gap: 8px; width: 100%; border: 0; background: transparent; color: #fff; text-align: left; padding: 8px 12px; cursor: pointer; font-size: 13px; }
     #mes-editor-root .mes-part + .mes-part::before { content: ''; position: absolute; top: 0; left: 12px; right: 0; height: 1px; background: rgba(255,255,255,.07); }
@@ -1497,11 +1537,9 @@
     #mes-editor-root .mes-part b { flex: none; font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: .03em; padding: 2px 6px; border-radius: 6px; background: rgba(255,255,255,.14); }
     #mes-editor-root .mes-part.on b { background: rgba(0,0,0,.12); }
     #mes-editor-root .mes-part span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; opacity: .75; }
-    /* подсветка элементов страницы — ч/б */
     .mes-editable-hint { outline: 2px dashed rgba(140,140,140,.95) !important; outline-offset: 2px; cursor: crosshair !important; }
     .mes-selected { outline: 2px solid #fff !important; outline-offset: 2px; box-shadow: 0 0 0 5px #000 !important; z-index: 9999 !important; }
     .mes-hl { outline: 2px solid #fff !important; outline-offset: 1px; box-shadow: 0 0 0 4px #000 !important; }
-    /* телефоны */
     @media (max-width: 560px) {
       #mes-editor-root { top: 8px; right: 8px; left: 8px; }
       #mes-editor-root .mes-panel { width: 100%; max-height: calc(100vh - 70px); max-height: calc(100dvh - 70px); border-radius: 20px; }
@@ -1522,7 +1560,7 @@
       root.innerHTML = `
         <button id="mes-toggle" type="button"><span>◐</span><span id="mes-toggle-t">Редактор</span></button>
         <div id="mes-panel" class="mes-panel">
-          <div class="mes-title"><span>МЭШ Studio</span><small>v1.9${LITE ? ' · lite' : ''}</small></div>
+          <div class="mes-title"><span>МЭШ Studio</span><small>v1.9.1${LITE ? ' · lite' : ''}</small></div>
           <div class="mes-seg">
             <button type="button" data-tab="layout" class="mes-tab">Раскладка</button>
             <button type="button" data-tab="theme" class="mes-tab">Оформление</button>
@@ -1553,7 +1591,6 @@
       };
       this.switchTab('layout');
     },
-    // тяжёлые вкладки строим лениво — при первом открытии редактора (экономия памяти)
     ensureBuilt() {
       if (this.built) return;
       this.built = true;
@@ -1616,11 +1653,9 @@
         $('#mes-bg', c).value = rule.styles?.backgroundColor || '#ffffff';
         $('#mes-color', c).value = rule.styles?.color || '#000000';
         $('#mes-radius', c).value = rule.styles?.borderRadius?.replace('px', '') || '';
-        // текст части
         const part = TextEditor.part(el);
         $('#mes-txt-wrap', c).style.display = part ? '' : 'none';
         if (part) $('#mes-ptext', c).value = part.cur;
-        // изображение
         const img = ImageReplacer.target(el);
         $('#mes-img-wrap', c).style.display = img ? '' : 'none';
         if (img) {
@@ -1628,7 +1663,6 @@
           $('#mes-img-url', c).value = e && !e.assetKey ? (e.url || '') : '';
           $('#mes-img-reset', c).style.display = e ? '' : 'none';
         }
-        // структура
         if (!App.partsRoot || !App.partsRoot.isConnected || !App.partsRoot.contains(el)) App.partsRoot = el;
         const parts = Blocks.parts(App.partsRoot);
         self._parts = parts;
@@ -1650,7 +1684,6 @@
       $('#mes-color', c).oninput = e => setStyle('color', e.target.value);
       $('#mes-radius', c).oninput = e => setStyle('borderRadius', e.target.value ? e.target.value + 'px' : '');
       $('#mes-reset-el', c).onclick = () => { if (App.selected) { StyleApplier.resetElement(SelectorRegistry.selectorFor(App.selected)); upd(); } };
-      // навигация по блокам
       $('#mes-up', c).onclick = () => {
         const el = App.selected; if (!el || !el.parentElement || el.parentElement === document.body) return;
         App.partsRoot = null; App.select(el.parentElement);
@@ -1658,7 +1691,6 @@
       $('#mes-block', c).onclick = () => { const el = App.selected; if (!el) return; App.partsRoot = null; App.select(Blocks.findBlock(el)); };
       $('#mes-mv-up', c).onclick = () => App.selected && DragDrop.moveEl(App.selected, -1);
       $('#mes-mv-dn', c).onclick = () => App.selected && DragDrop.moveEl(App.selected, 1);
-      // список частей
       const partsBox = $('#mes-parts', c);
       let hl = null;
       const unhl = () => { if (hl) { hl.classList.remove('mes-hl'); hl = null; } };
@@ -1673,12 +1705,10 @@
         unhl(); hl = p.el; hl.classList.add('mes-hl');
       };
       partsBox.onmouseleave = unhl;
-      // текст
       $('#mes-ptext', c).onchange = e => {
         const p = TextEditor.part(App.selected); if (!p) return;
         TextEditor.set(p.from, e.target.value); upd();
       };
-      // картинка
       $('#mes-img-file', c).onchange = async e => {
         const f = e.target.files[0]; const t = ImageReplacer.target(App.selected);
         if (!f || !t) return;
@@ -1787,7 +1817,6 @@
       const effUpd = () => { t.effects.snow = $('#th-snow', c).checked; t.effects.rain = $('#th-rain', c).checked; t.effects.stars = $('#th-stars', c).checked; t.effects.intensity = +$('#th-intensity', c).value; t.effects.lowPower = $('#th-low', c).checked; commit(); ThemeEngine.apply(); };
       ['th-snow', 'th-rain', 'th-stars', 'th-intensity', 'th-low'].forEach(id => $('#' + id, c).onchange = effUpd);
       $('#th-intensity', c).value = t.effects.intensity; $('#th-low', c).checked = t.effects.lowPower;
-      // шрифты
       const fontName = $('#th-font-name', c);
       const showFont = () => { fontName.textContent = t.fonts.fileKey ? (t.fonts.fileName || 'файл') : '—'; $('#th-font-clear', c).style.display = t.fonts.fileKey ? '' : 'none'; };
       showFont();
@@ -1806,11 +1835,11 @@
       const fontUpd = () => { t.fonts.family = $('#th-font-family', c).value.trim(); t.fonts.size = +$('#th-font-size', c).value || 0; commit(); ThemeEngine.apply(); };
       ['th-font-family', 'th-font-size'].forEach(id => $('#' + id, c).onchange = fontUpd);
       $('#th-auto-dark', c).checked = t.misc.autoDark;
-      $('#th-auto-dark', c).onchange = e => { t.misc.autoDark = e.target.checked; commit(); ThemeEngine.apply(); };
+      $('#th-auto-dark', c).onchange = e => { t.misc.autoDark = e.target.checked; commit(); Surfaces.reset(); ThemeEngine.apply(); };
       $('#th-dark', c).checked = t.misc.dark;
-      $('#th-dark', c).onchange = e => { t.misc.dark = e.target.checked; commit(); ThemeEngine.apply(); };
+      $('#th-dark', c).onchange = e => { t.misc.dark = e.target.checked; commit(); Surfaces.reset(); ThemeEngine.apply(); };
       $('#th-glass', c).checked = t.misc.glass;
-      $('#th-glass', c).onchange = e => { t.misc.glass = e.target.checked; commit(); ThemeEngine.apply(); };
+      $('#th-glass', c).onchange = e => { t.misc.glass = e.target.checked; commit(); Surfaces.reset(); ThemeEngine.apply(); };
       const opV = $('#th-glass-op-v', c), blV = $('#th-glass-blur-v', c);
       $('#th-glass-op', c).value = t.misc.glassOpacity; opV.textContent = Math.round(t.misc.glassOpacity * 100) + '%';
       $('#th-glass-op', c).oninput = e => { t.misc.glassOpacity = +e.target.value; opV.textContent = Math.round(t.misc.glassOpacity * 100) + '%'; commit(); ThemeEngine.applyMisc(t.misc); };
@@ -1879,11 +1908,10 @@
     TextEditor.applyAll();
   }
   function boot() {
-    log('Запуск v1.9' + (LITE ? ' (режим экономии)' : ''));
+    log('Запуск v1.9.1' + (LITE ? ' (режим экономии)' : ''));
     EditorUI.mount();
     DragDrop.init();
     ThemeEngine.apply().catch(e => log('theme error', e));
-    // первые секунды догоняем динамически дорисованные блоки; на телефоне — реже
     let tries = 0;
     const maxTries = LITE ? 6 : 12, every = LITE ? 1000 : 500;
     const light = () => {
@@ -1898,7 +1926,6 @@
     const wrap = (name) => { const orig = history[name]; history[name] = function (...a) { const r = orig.apply(this, a); onRoute(); return r; }; };
     wrap('pushState'); wrap('replaceState');
     window.addEventListener('popstate', onRoute);
-    // hover / focus / active: до отрисовки кадра помечаем элементы, которые сайт делает белыми при наведении
     const hv = (e) => { if (Surfaces.needSurf()) Surfaces.hoverSchedule(e.target); };
     const hopt = { capture: true, passive: true };
     document.addEventListener('pointerover', hv, hopt);
@@ -1908,26 +1935,34 @@
     const inEditor = (n) => { const el = n && (n.nodeType === 1 ? n : n.parentElement); return !!(el && el.closest && el.closest('#mes-editor-root')); };
     // Колбэк MutationObserver выполняется ДО отрисовки кадра:
     // новые карточки получают стекло/тёмный фон/анимацию мгновенно → никакого белого мерцания.
+    // Элементы с изменившимся классом / появившимся текстом перепроверяются (force).
     new MutationObserver((muts) => {
       const surf = Surfaces.needSurf();
       const nodes = [], added = [];
+      const force = new Set();
       let external = false, imgSrc = false;
       for (const m of muts) {
         if (m.type === 'childList') {
           if (inEditor(m.target)) continue;
           external = true;
-          m.addedNodes.forEach(n => { if (n.nodeType === 1) { added.push(n); if (surf) nodes.push(n); } });
+          let textAdded = false;
+          m.addedNodes.forEach(n => {
+            if (n.nodeType === 1) { added.push(n); if (surf) nodes.push(n); }
+            else if (n.nodeType === 3 && surf && n.nodeValue.trim()) textAdded = true;
+          });
+          // в уже известный элемент добавили текст (React) — он мог стать «плашкой»
+          if (textAdded && m.target.nodeType === 1 && force.size < 60 && Surfaces.maybeChip(m.target)) { force.add(m.target); nodes.push(m.target); }
         } else if (m.type === 'attributes') {
           const el = m.target;
           if (!el || el.nodeType !== 1 || inEditor(el)) continue;
           if (m.attributeName === 'src') { if (el.tagName === 'IMG') imgSrc = true; continue; }
           if (!surf) continue;
           if (normCls(m.oldValue) === normCls(el.getAttribute('class'))) continue;
-          nodes.push(el);
+          if (force.size < 80) { force.add(el); nodes.push(el); }
         }
       }
-      if (nodes.length) { try { Surfaces.fast(nodes); } catch (e) {} }
-      if (added.length) { try { Anim.batch = performance.now(); Anim.animate(added); } catch (e) {} }
+      if (nodes.length) { try { Surfaces.fast(nodes, force); } catch (e) { Surfaces.quiet = false; } }
+      if (added.length) { try { Anim.animate(added); } catch (e) {} }
       if (external) onMutate();
       if (imgSrc) onImg();
     }).observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['class', 'src'], attributeOldValue: true });
