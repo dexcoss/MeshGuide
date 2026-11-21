@@ -1,0 +1,1998 @@
+
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>МЭШ Layout Editor + Theme Studio PRO — установка через Tampermonkey</title>
+<style>
+  :root{
+    --bg:#0c0e12; --card:#15181f; --card2:#1b1f28; --line:#262b36;
+    --txt:#e8eaf0; --mut:#9aa3b2; --acc:#ffffff; --accTxt:#000; --ok:#3ddc97; --warn:#ffb547; --err:#ff6b6b;
+  }
+  @media (prefers-color-scheme: light){
+    :root{
+      --bg:#f3f4f7; --card:#ffffff; --card2:#f7f8fa; --line:#e1e4eb;
+      --txt:#14161b; --mut:#5b6474; --acc:#000000; --accTxt:#ffffff; --ok:#12865a; --warn:#b8741a; --err:#c2353a;
+    }
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    margin:0; background:var(--bg); color:var(--txt);
+    font:16px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  a{color:inherit}
+  code,pre{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+  .wrap{max-width:900px;margin:0 auto;padding:0 20px}
+
+  /* ---------- шапка ---------- */
+  header.hero{padding:56px 0 36px;border-bottom:1px solid var(--line);background:radial-gradient(1200px 400px at 50% -10%,rgba(127,127,255,.18),transparent 60%)}
+  .badge{display:inline-block;font-size:12px;font-weight:600;letter-spacing:.03em;padding:5px 11px;border-radius:999px;border:1px solid var(--line);color:var(--mut);margin:0 6px 8px 0}
+  h1{font-size:clamp(26px,5vw,38px);line-height:1.15;margin:14px 0 10px;letter-spacing:-.02em}
+  .lead{color:var(--mut);font-size:17px;margin:0 0 22px;max-width:680px}
+  .btns{display:flex;flex-wrap:wrap;gap:10px}
+  .btn{
+    display:inline-flex;align-items:center;justify-content:center;gap:8px;
+    border:0;border-radius:12px;padding:12px 18px;font:inherit;font-weight:600;font-size:15px;
+    text-decoration:none;cursor:pointer;background:var(--card2);color:var(--txt);
+    box-shadow:inset 0 0 0 1px var(--line);transition:transform .15s,background .2s,opacity .2s;
+  }
+  .btn:hover{background:var(--card)}
+  .btn:active{transform:scale(.97)}
+  .btn.primary{background:var(--acc);color:var(--accTxt);box-shadow:none}
+  .btn.primary:hover{opacity:.9}
+  .btn.done{background:var(--ok);color:#fff;box-shadow:none}
+
+  /* ---------- навигация ---------- */
+  nav.toc{position:sticky;top:0;z-index:10;background:color-mix(in srgb,var(--bg) 85%,transparent);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-bottom:1px solid var(--line)}
+  nav.toc .wrap{display:flex;gap:4px;overflow-x:auto;padding-top:10px;padding-bottom:10px;scrollbar-width:none}
+  nav.toc a{white-space:nowrap;font-size:14px;color:var(--mut);text-decoration:none;padding:6px 12px;border-radius:999px}
+  nav.toc a:hover{color:var(--txt);background:var(--card)}
+
+  /* ---------- секции ---------- */
+  section{padding:40px 0;border-bottom:1px solid var(--line)}
+  section:last-of-type{border-bottom:0}
+  h2{font-size:24px;letter-spacing:-.015em;margin:0 0 6px}
+  h3{font-size:17px;margin:22px 0 8px}
+  .sub{color:var(--mut);margin:0 0 22px}
+  p{margin:0 0 12px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:18px 20px;margin-bottom:14px}
+  .note{border-left:3px solid var(--warn);background:var(--card2);padding:12px 16px;border-radius:10px;color:var(--mut);font-size:14.5px;margin:14px 0}
+  .note.ok{border-color:var(--ok)}
+  .note.err{border-color:var(--err)}
+  .note b{color:var(--txt)}
+
+  /* ---------- шаги ---------- */
+  .steps{list-style:none;counter-reset:s;padding:0;margin:0}
+  .steps li{counter-increment:s;position:relative;padding:16px 16px 16px 60px;background:var(--card);border:1px solid var(--line);border-radius:16px;margin-bottom:12px}
+  .steps li::before{
+    content:counter(s);position:absolute;left:16px;top:16px;width:30px;height:30px;border-radius:50%;
+    background:var(--acc);color:var(--accTxt);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;
+  }
+  .steps li h3{margin:0 0 4px;font-size:16px}
+  .steps li p{margin:0;color:var(--mut);font-size:15px}
+  .steps li p + p{margin-top:8px}
+  kbd{display:inline-block;font:12.5px ui-monospace,Menlo,Consolas,monospace;padding:2px 7px;border-radius:6px;border:1px solid var(--line);border-bottom-width:2px;background:var(--card2);color:var(--txt)}
+
+  /* ---------- таблица браузеров ---------- */
+  .browsers{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px}
+  .browsers a{display:block;text-decoration:none;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 16px;transition:transform .15s,border-color .2s}
+  .browsers a:hover{transform:translateY(-2px);border-color:var(--mut)}
+  .browsers b{display:block;font-size:15px}
+  .browsers span{color:var(--mut);font-size:13px}
+
+  /* ---------- код ---------- */
+  .codebar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;margin-bottom:12px}
+  .codebar .meta{color:var(--mut);font-size:13.5px}
+  .codebox{position:relative;background:#0a0b0e;color:#dfe3ea;border:1px solid var(--line);border-radius:16px;overflow:hidden}
+  .codebox pre{margin:0;padding:16px 18px;max-height:460px;overflow:auto;font-size:12.5px;line-height:1.5;white-space:pre;tab-size:2}
+  .codebox.collapsed pre{max-height:180px;overflow:hidden;-webkit-mask-image:linear-gradient(#000 55%,transparent);mask-image:linear-gradient(#000 55%,transparent)}
+  .toggle-code{margin-top:10px}
+
+  /* ---------- блоки «как пользоваться» ---------- */
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  @media (max-width:640px){.grid2{grid-template-columns:1fr}}
+  .kv{display:flex;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid var(--line);font-size:15px}
+  .kv:last-child{border-bottom:0}
+  .kv span:last-child{color:var(--mut);text-align:right}
+
+  /* ---------- FAQ ---------- */
+  details{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 18px;margin-bottom:10px}
+  details summary{cursor:pointer;font-weight:600;list-style:none;display:flex;justify-content:space-between;gap:12px}
+  details summary::-webkit-details-marker{display:none}
+  details summary::after{content:'+';color:var(--mut);font-size:20px;line-height:1}
+  details[open] summary::after{content:'–'}
+  details p{color:var(--mut);margin:10px 0 0;font-size:15px}
+
+  footer{padding:28px 0 50px;color:var(--mut);font-size:13.5px;text-align:center}
+
+  /* ---------- уведомление ---------- */
+  #toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(20px);background:var(--acc);color:var(--accTxt);padding:10px 18px;border-radius:999px;font-weight:600;font-size:14px;opacity:0;pointer-events:none;transition:opacity .25s,transform .25s;z-index:99}
+  #toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+  @media (max-width:560px){
+    header.hero{padding:40px 0 28px}
+    .btns .btn{flex:1 1 100%}
+    .steps li{padding-left:16px;padding-top:58px}
+    .steps li::before{left:16px;top:14px}
+  }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="wrap">
+    <span class="badge">v1.9.0</span><span class="badge">Tampermonkey</span><span class="badge">school.mos.ru</span>
+    <h1>МЭШ Layout Editor + Theme Studio PRO</h1>
+    <p class="lead">Визуальный редактор для «Московской электронной школы»: переставляйте блоки, меняйте текст и картинки, включайте стеклянный стиль, тёмную тему, анимации, музыку и свой шрифт. Работает на компьютере и телефоне.</p>
+    <div class="btns">
+      <button class="btn primary" id="btnCopyTop" type="button">Копировать код</button>
+      <button class="btn" id="btnDownloadTop" type="button">Скачать .user.js</button>
+      <a class="btn" href="#install">Инструкция</a>
+    </div>
+  </div>
+</header>
+
+<nav class="toc">
+  <div class="wrap">
+    <a href="#install">1. Установка</a>
+    <a href="#tampermonkey">2. Tampermonkey</a>
+    <a href="#script">3. Скрипт</a>
+    <a href="#usage">4. Использование</a>
+    <a href="#faq">5. Проблемы</a>
+  </div>
+</nav>
+
+<main class="wrap">
+
+  <!-- ===================== 1. ОБЩЕЕ ===================== -->
+  <section id="install">
+    <h2>1. Что понадобится</h2>
+    <p class="sub">Скрипт работает как расширение-«надстройка»: браузер запускает его на странице school.mos.ru. Нужны два пункта:</p>
+    <div class="card">
+      <div class="kv"><span>Браузер</span><span>Chrome, Edge, Яндекс.Браузер, Opera, Firefox</span></div>
+      <div class="kv"><span>Расширение Tampermonkey</span><span>бесплатное, ставится за одну минуту</span></div>
+      <div class="kv"><span>Аккаунт МЭШ</span><span>обычный вход на school.mos.ru</span></div>
+    </div>
+    <div class="note"><b>Важно:</b> скрипт ничего не отправляет на сторонние серверы. Все настройки хранятся в самом браузере.</div>
+  </section>
+
+  <!-- ===================== 2. TAMPERMONKEY ===================== -->
+  <section id="tampermonkey">
+    <h2>2. Установите Tampermonkey</h2>
+    <p class="sub">Выберите свой браузер и нажмите на ссылку — откроется официальный магазин расширений.</p>
+    <div class="browsers">
+      <a href="https://chromewebstore.google.com/detail/tampermonkey/dhdgffkkebhmkfjojejmpbldmpobfkfo" target="_blank" rel="noopener">
+        <b>Chrome / Яндекс / Edge</b><span>Chrome Web Store</span>
+      </a>
+      <a href="https://addons.mozilla.org/firefox/addon/tampermonkey/" target="_blank" rel="noopener">
+        <b>Firefox</b><span>addons.mozilla.org</span>
+      </a>
+      <a href="https://addons.opera.com/extensions/details/tampermonkey-beta/" target="_blank" rel="noopener">
+        <b>Opera</b><span>addons.opera.com</span>
+      </a>
+      <a href="https://play.google.com/store/apps/details?id=com.tampermonkey.browser" target="_blank" rel="noopener">
+        <b>Телефон (Android)</b><span>Kiwi / Firefox + Tampermonkey</span>
+      </a>
+    </div>
+    <div class="note">
+      <b>Chrome, Яндекс и Edge (новые версии):</b> если скрипт не запускается, откройте <code>chrome://extensions</code> (или <code>edge://extensions</code>), включите <b>«Режим разработчика»</b>, затем в настройках Tampermonkey включите <b>«Режим пользовательского скрипта»</b> (или «User scripts»).
+    </div>
+  </section>
+
+  <!-- ===================== 3. УСТАНОВКА СКРИПТА ===================== -->
+  <section id="script">
+    <h2>3. Добавьте скрипт в Tampermonkey</h2>
+    <p class="sub">Два способа: вставить код вручную (рекомендуется) или скачать файл и импортировать его.</p>
+
+    <h3>Способ А — вставить код (рекомендуется)</h3>
+    <ol class="steps">
+      <li>
+        <h3>Откройте панель Tampermonkey</h3>
+        <p>Нажмите на иконку <b>Tampermonkey</b> в правом верхнем углу браузера (значок «пазла», если он спрятан) и выберите <b>«Панель управления»</b> / <b>Dashboard</b>.</p>
+      </li>
+      <li>
+        <h3>Создайте новый скрипт</h3>
+        <p>Перейдите на вкладку с символом <kbd>+</kbd> (создать новый скрипт). Откроется редактор с шаблонным текстом.</p>
+      </li>
+      <li>
+        <h3>Скопируйте код этой страницы</h3>
+        <p>Нажмите кнопку <b>«Копировать код»</b> ниже или вверху страницы. Появится уведомление «Код скопирован».</p>
+      </li>
+      <li>
+        <h3>Вставьте код в редактор</h3>
+        <p>В редакторе Tampermonkey выделите весь шаблон: <kbd>Ctrl</kbd>+<kbd>A</kbd> (на Mac: <kbd>⌘</kbd>+<kbd>A</kbd>), удалите его и вставьте код: <kbd>Ctrl</kbd>+<kbd>V</kbd>.</p>
+      </li>
+      <li>
+        <h3>Сохраните</h3>
+        <p>Нажмите <kbd>Ctrl</kbd>+<kbd>S</kbd> или кнопку <b>File → Save</b>. Скрипт появится в списке и будет включён (переключатель зелёный).</p>
+      </li>
+      <li>
+        <h3>Откройте МЭШ</h3>
+        <p>Перейдите на <code>school.mos.ru</code> и обновите страницу (<kbd>F5</kbd>). В правом верхнем углу появится кнопка <b>«Редактор»</b>.</p>
+      </li>
+    </ol>
+
+    <h3>Способ Б — скачать файл и импортировать</h3>
+    <ol class="steps">
+      <li>
+        <h3>Скачайте файл</h3>
+        <p>Нажмите <b>«Скачать .user.js»</b> ниже. Сохранится файл <code>mes-layout-editor.user.js</code>.</p>
+      </li>
+      <li>
+        <h3>Импортируйте в Tampermonkey</h3>
+        <p>Откройте <b>Панель управления</b> → вкладка <b>«Утилиты»</b> (Utilities) → раздел <b>Import</b> → <b>Выбрать файл</b> и укажите скачанный файл. Подтвердите установку кнопкой <b>Install</b>.</p>
+      </li>
+    </ol>
+
+    <h3 id="code">Код скрипта</h3>
+    <div class="codebar">
+      <span class="meta">Версия 1.9.0 · примерно 35 КБ · без внешних библиотек</span>
+      <div class="btns">
+        <button class="btn primary" id="btnCopy" type="button">Копировать код</button>
+        <button class="btn" id="btnDownload" type="button">Скачать .user.js</button>
+      </div>
+    </div>
+    <div class="codebox collapsed" id="codebox"><pre id="codeView"></pre></div>
+    <div class="btns toggle-code">
+      <button class="btn" id="btnToggle" type="button">Показать весь код</button>
+    </div>
+  </section>
+
+  <!-- ===================== 4. ИСПОЛЬЗОВАНИЕ ===================== -->
+  <section id="usage">
+    <h2>4. Как пользоваться</h2>
+    <p class="sub">Откройте школьный дневник или расписание и нажмите кнопку <b>«Редактор»</b> в правом верхнем углу.</p>
+
+    <div class="grid2">
+      <div class="card">
+        <h3 style="margin-top:0">Раскладка</h3>
+        <div class="kv"><span>Выбрать элемент</span><span>клик по нему</span></div>
+        <div class="kv"><span>Выбрать весь блок</span><span><kbd>Alt</kbd> + клик или «Весь блок»</span></div>
+        <div class="kv"><span>Переместить</span><span>перетащите мышью или <kbd>↑</kbd> <kbd>↓</kbd></span></div>
+        <div class="kv"><span>Скрыть элемент</span><span>переключатель «Скрыть»</span></div>
+        <div class="kv"><span>Заменить текст</span><span>поле «Текст части»</span></div>
+        <div class="kv"><span>Заменить картинку</span><span>файлом или ссылкой</span></div>
+      </div>
+      <div class="card">
+        <h3 style="margin-top:0">Оформление</h3>
+        <div class="kv"><span>Фон</span><span>цвет, градиент, картинка, видео</span></div>
+        <div class="kv"><span>Стекло</span><span>прозрачные карточки с размытием</span></div>
+        <div class="kv"><span>Тёмная тема</span><span>или «Как в системе»</span></div>
+        <div class="kv"><span>Анимация</span><span>плавно, справа, масштаб</span></div>
+        <div class="kv"><span>Эффекты</span><span>снег, дождь, звёзды</span></div>
+        <div class="kv"><span>Шрифт</span><span>свой файл .ttf / .woff2</span></div>
+      </div>
+    </div>
+
+    <h3>Горячие клавиши и советы</h3>
+    <div class="card">
+      <div class="kv"><span><kbd>Esc</kbd></span><span>выйти из режима редактирования</span></div>
+      <div class="kv"><span><kbd>Ctrl</kbd> + <kbd>↑</kbd> / <kbd>↓</kbd></span><span>переместить блок целиком</span></div>
+      <div class="kv"><span>Экспорт / Импорт</span><span>сохраните свои настройки в файл и переносите на другое устройство</span></div>
+      <div class="kv"><span>Сброс</span><span>кнопка «Сброс» удаляет все настройки этой страницы</span></div>
+    </div>
+    <div class="note ok"><b>Совет:</b> на телефоне включён режим экономии — внешний вид тот же, но меньше нагрузка на процессор и память.</div>
+  </section>
+
+  <!-- ===================== 5. FAQ ===================== -->
+  <section id="faq">
+    <h2>5. Если что-то не работает</h2>
+    <p class="sub">Самые частые вопросы.</p>
+
+    <details>
+      <summary>Кнопки «Редактор» нет на странице</summary>
+      <p>Проверьте, что скрипт включён в Панели управления Tampermonkey (переключатель зелёный). Адрес должен начинаться с <code>school.mos.ru</code>. Обновите страницу клавишей <kbd>F5</kbd>. Если не помогло — проверьте, что Tampermonkey включён для этого сайта в значке расширения.</p>
+    </details>
+    <details>
+      <summary>В Chrome / Яндекс / Edge скрипт не запускается</summary>
+      <p>Включите «Режим разработчика» на странице расширений и «Режим пользовательского скрипта» в настройках Tampermonkey. Затем перезапустите браузер.</p>
+    </details>
+    <details>
+      <summary>Ошибка при вставке кода или «Syntax error»</summary>
+      <p>Скорее всего, в редакторе остался старый шаблон. Выделите весь текст <kbd>Ctrl</kbd>+<kbd>A</kbd>, удалите и вставьте код заново. Строка <code>// ==UserScript==</code> должна быть самой первой.</p>
+    </details>
+    <details>
+      <summary>Сайт стал тормозить</summary>
+      <p>Выключите «Эффект стекла», снег / дождь и видеофон во вкладке «Оформление». Для слабых устройств включите «Снизить нагрузку» в эффектах.</p>
+    </details>
+    <details>
+      <summary>Настройки пропали после очистки браузера</summary>
+      <p>Заранее сохраняйте резервную копию кнопкой «Экспорт» (файл JSON). После переустановки используйте «Импорт».</p>
+    </details>
+    <details>
+      <summary>Картинки или музыка не сохраняются</summary>
+      <p>Проверьте, что браузер не блокирует хранилище сайта и не работает в режиме «Инкогнито» (там данные не сохраняются после закрытия окна). Большие файлы сжимаются автоматически.</p>
+    </details>
+
+    <div class="note err"><b>Не меняйте текст скрипта</b> вручную без необходимости: при ошибке в коде страница может перестать загружаться корректно. Для возврата к исходной версии используйте файл, скачанный на этой странице.</div>
+  </section>
+
+</main>
+
+<footer>
+  <div class="wrap">МЭШ Layout Editor + Theme Studio PRO · v1.9.0 · Сайт-инструкция для установки через Tampermonkey</div>
+</footer>
+
+<div id="toast"></div>
+
+<!-- Исходный код скрипта. Хранится как текст (не выполняется). -->
+<script type="text/plain" id="script-src">
+// ==UserScript==
+// @name         МЭШ Layout Editor + Theme Studio PRO
+// @namespace    meshlayout
+// @version      1.9.0
+// @description  Визуальный редактор МЭШ: стекло без мерцания, исправлен белый hover, анимация при листании, замена картинок, захват блоков целиком, свой шрифт с компьютера, режим экономии для телефонов
+// @author       you
+// @match        https://school.mos.ru/*
+// @match        https://*.mos.ru/*
+// @grant        GM_setValue
+// @grant        GM_getValue
+// @grant        GM_addStyle
+// @connect      fonts.googleapis.com
+// @connect      fonts.gstatic.com
+// @run-at       document-idle
+// ==/UserScript==
+(function () {
+  'use strict';
+  const $ = (sel, root = document) => root.querySelector(sel);
+  const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
+  const debounce = (fn, ms) => { let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); }; };
+  const uid = () => Math.random().toString(36).slice(2, 10);
+  const log = (...a) => console.log('%c[МЭШ PRO]', 'color:#999', ...a);
+  const esc = (s) => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const normCls = (s) => (s || '').split(/\s+/).filter(x => x && !x.startsWith('mes-')).sort().join(' ');
+  /* =========================================================
+   * 0. РЕЖИМ ЭКОНОМИИ (телефоны / слабые устройства)
+   *    Внешний вид не меняется — уменьшается только нагрузка:
+   *    меньше blur, 30 fps для эффектов, фон без background-attachment:fixed,
+   *    реже сканирование страницы, уменьшение больших картинок.
+   * ========================================================= */
+  const LITE = (() => {
+    try {
+      const coarse = matchMedia('(pointer:coarse)').matches;
+      const mobileUA = /Android|iPhone|iPad|iPod|Mobile|Opera Mini/i.test(navigator.userAgent);
+      const lowMem = navigator.deviceMemory && navigator.deviceMemory <= 2;
+      return !!(coarse || mobileUA || lowMem);
+    } catch (e) { return false; }
+  })();
+  const IMG_MAX = LITE ? 1280 : 2560;
+  async function shrinkImage(file, max) {
+    try {
+      if (!file.type || !file.type.startsWith('image/') || file.type === 'image/gif' || file.type === 'image/svg+xml') return file;
+      const bmp = await createImageBitmap(file);
+      const k = Math.min(1, max / Math.max(bmp.width, bmp.height));
+      if (k >= 1) { bmp.close && bmp.close(); return file; }
+      const w = Math.round(bmp.width * k), h = Math.round(bmp.height * k);
+      const cv = document.createElement('canvas'); cv.width = w; cv.height = h;
+      cv.getContext('2d').drawImage(bmp, 0, 0, w, h);
+      bmp.close && bmp.close();
+      const type = file.type === 'image/png' ? 'image/png' : 'image/jpeg';
+      const blob = await new Promise(r => cv.toBlob(r, type, 0.88));
+      cv.width = cv.height = 0;
+      return blob && blob.size < file.size ? blob : file;
+    } catch (e) { return file; }
+  }
+  /* =========================================================
+   * 1. STORAGE
+   * ========================================================= */
+  const Storage = {
+    KEY: 'mes_editor_state_v6',
+    defaultState() { return { version: 6, themes: {}, layouts: {}, images: {}, texts: {} }; },
+    load() {
+      try {
+        const raw = GM_getValue(this.KEY, null);
+        if (!raw) return this.defaultState();
+        return Object.assign(this.defaultState(), JSON.parse(raw));
+      } catch (e) { return this.defaultState(); }
+    },
+    save(state) { try { GM_setValue(this.KEY, JSON.stringify(state)); } catch (e) {} },
+  };
+  const AssetStore = {
+    DB_NAME: 'mes_editor_assets', STORE: 'assets', _db: null, _urls: {},
+    open() {
+      if (this._db) return Promise.resolve(this._db);
+      return new Promise((res, rej) => {
+        const req = indexedDB.open(this.DB_NAME, 1);
+        req.onupgradeneeded = () => { const db = req.result; if (!db.objectStoreNames.contains(this.STORE)) db.createObjectStore(this.STORE); };
+        req.onsuccess = () => { this._db = req.result; res(this._db); };
+        req.onerror = () => rej(req.error);
+      });
+    },
+    async put(key, blob) {
+      const db = await this.open();
+      return new Promise((res, rej) => {
+        const tx = db.transaction(this.STORE, 'readwrite');
+        tx.objectStore(this.STORE).put(blob, key);
+        tx.oncomplete = () => res(key);
+        tx.onerror = () => rej(tx.error);
+      });
+    },
+    async get(key) {
+      const db = await this.open();
+      return new Promise((res, rej) => {
+        const tx = db.transaction(this.STORE, 'readonly');
+        const r = tx.objectStore(this.STORE).get(key);
+        r.onsuccess = () => res(r.result);
+        r.onerror = () => rej(r.error);
+      });
+    },
+    async toURL(key) {
+      if (this._urls[key]) return this._urls[key];
+      const blob = await this.get(key);
+      if (!blob) return null;
+      return (this._urls[key] = URL.createObjectURL(blob));
+    },
+    // освобождаем память: отзываем blob-URL и удаляем старый файл
+    async drop(key) {
+      if (!key) return;
+      if (this._urls[key]) { try { URL.revokeObjectURL(this._urls[key]); } catch (e) {} delete this._urls[key]; }
+      try { const db = await this.open(); db.transaction(this.STORE, 'readwrite').objectStore(this.STORE).delete(key); } catch (e) {}
+    },
+  };
+  /* =========================================================
+   * 2. SELECTOR REGISTRY
+   * ========================================================= */
+  const CANDIDATES = [
+    'button', 'a[role="button"]', '[class*="Button"]', '[class*="button"]',
+    '[class*="card"]', '[class*="Card"]', '[class*="wrapper"]', '[class*="item"]',
+    '[data-testid]', 'header', 'nav', 'aside', 'main > div > *', 'img'
+  ];
+  const CAND_SEL = CANDIDATES.join(',');
+  const SelectorRegistry = {
+    isEditable(el) {
+      if (!el || el.nodeType !== 1) return false;
+      if (el.closest('#mes-editor-root, #mes-theme-effects')) return false;
+      if (el.tagName === 'HTML' || el.tagName === 'BODY') return false;
+      try { return el.matches(CAND_SEL); } catch (e) { return false; }
+    },
+    selectorFor(el) {
+      if (el.id && !el.id.includes('dehewoo') && !el.id.includes('userdata')) return '#' + CSS.escape(el.id);
+      const tid = el.getAttribute('data-testid');
+      if (tid) return `[data-testid="${tid}"]`;
+      let part = el.tagName.toLowerCase();
+      if (el.classList.length > 0) {
+        const classes = Array.from(el.classList).filter(c => c.length > 2 && !c.includes('hover') && !c.includes('active') && !c.startsWith('mes-')).slice(0, 2);
+        if (classes.length) part += '.' + classes.map(c => CSS.escape(c)).join('.');
+      }
+      return part;
+    },
+    // точный путь до одного элемента (для фоновых картинок)
+    pathFor(el) {
+      const parts = [];
+      for (let p = el, d = 0; p && p !== document.body && d < 6; p = p.parentElement, d++) {
+        if (p.id && !p.id.includes('dehewoo') && !p.id.includes('userdata')) { parts.unshift('#' + CSS.escape(p.id)); break; }
+        const par = p.parentElement; let nth = 1;
+        if (par) nth = Array.prototype.indexOf.call(par.children, p) + 1;
+        parts.unshift(`${p.tagName.toLowerCase()}:nth-child(${nth})`);
+      }
+      return parts.join(' > ');
+    }
+  };
+  /* =========================================================
+   * 3. STATE
+   * ========================================================= */
+  const App = {
+    state: Storage.load(),
+    pageKey: 'school.mos.ru',
+    editing: false, selected: null, root: null, partsRoot: null,
+  };
+  const migrated = new WeakSet();
+  function getLayout() { if (!App.state.layouts[App.pageKey]) App.state.layouts[App.pageKey] = []; return App.state.layouts[App.pageKey]; }
+  function getImages() { App.state.images = App.state.images || {}; if (!App.state.images[App.pageKey]) App.state.images[App.pageKey] = []; return App.state.images[App.pageKey]; }
+  function getTexts() { App.state.texts = App.state.texts || {}; if (!App.state.texts[App.pageKey]) App.state.texts[App.pageKey] = []; return App.state.texts[App.pageKey]; }
+  function getTheme() {
+    const d = defaultTheme();
+    let t = App.state.themes[App.pageKey];
+    if (!t) t = App.state.themes[App.pageKey] = d;
+    if (!migrated.has(t)) {
+      Object.keys(d).forEach(k => { t[k] = Object.assign({}, d[k], t[k]); });
+      if ('animations' in t.misc) {
+        t.misc.anim = t.misc.animations ? 'fade' : 'none';
+        delete t.misc.animations;
+      }
+      if (!['none', 'fade', 'slide', 'zoom'].includes(t.misc.anim)) t.misc.anim = 'fade';
+      migrated.add(t);
+    }
+    return t;
+  }
+  function defaultTheme() {
+    return {
+      background: { type: 'none', color: '#ffffff', grad: ['#ffffff', '#e0e0e0'], angle: 135, assetKey: null, url: '', fit: 'cover' },
+      music: { assetKey: null, url: '', enabled: false, volume: 0.5, loop: true },
+      clickSound: { preset: 'none', enabled: false, volume: 0.6 },
+      effects: { snow: false, rain: false, stars: false, intensity: 1, lowPower: false },
+      fonts: { family: '', size: 0, lineHeight: 0, weight: 0, fileKey: null, fileName: '' },
+      misc: { dark: false, autoDark: false, radius: null, cursor: '', glass: false, glassOpacity: 0.25, glassBlur: 10, anim: 'fade' },
+    };
+  }
+  // сохранение с задержкой — слайдеры больше не пишут в хранилище на каждый пиксель
+  const commit = debounce(() => Storage.save(App.state), 300);
+  function commitNow() { Storage.save(App.state); }
+  window.addEventListener('pagehide', commitNow);
+  document.addEventListener('visibilitychange', () => { if (document.hidden) commitNow(); });
+  /* =========================================================
+   * 4. STYLE APPLIER
+   * ========================================================= */
+  const StyleApplier = {
+    applyAll() {
+      const layout = getLayout();
+      if (!layout.length) return;
+      layout.forEach(rule => {
+        let els = [];
+        try { els = $$(rule.selector); } catch (e) {}
+        els.forEach(el => this.applyRule(el, rule));
+      });
+      this.applyOrder(layout);
+    },
+    applyRule(el, rule) {
+      if (rule.hidden) { el.style.setProperty('display', 'none', 'important'); el.dataset.mesHid = '1'; }
+      else if (el.dataset.mesHid) { el.style.removeProperty('display'); delete el.dataset.mesHid; }
+      if (rule.styles) {
+        Object.entries(rule.styles).forEach(([k, v]) => {
+          const prop = k.replace(/[A-Z]/g, m => '-' + m.toLowerCase());
+          if (v === '' || v == null) el.style.removeProperty(prop);
+          else el.style.setProperty(prop, v, 'important');
+        });
+      }
+      if (rule.text && (el.tagName === 'BUTTON' || el.tagName === 'A')) {
+        if (!el.dataset.mesOrigText) el.dataset.mesOrigText = el.textContent;
+        if (el.textContent !== rule.text) el.textContent = rule.text;
+      }
+    },
+    applyOrder(layout) {
+      layout.filter(r => r.order != null).forEach(rule => {
+        let el; try { el = $$(rule.selector)[0]; } catch (e) {}
+        if (!el || !el.parentElement) return;
+        const siblings = Array.from(el.parentElement.children).filter(c => c.nodeType === 1);
+        const targetIndex = Math.min(rule.order, siblings.length - 1);
+        if (targetIndex < 0) return;
+        const ref = siblings[targetIndex];
+        if (ref && ref !== el) el.parentElement.insertBefore(el, targetIndex > siblings.indexOf(el) ? ref.nextSibling : ref);
+      });
+    },
+    findRule(selector) { return getLayout().find(r => r.selector === selector); },
+    setRule(selector, patch) {
+      let rule = this.findRule(selector);
+      if (!rule) { rule = { selector, hidden: false, order: null, styles: {}, text: '' }; getLayout().push(rule); }
+      Object.assign(rule, patch);
+      commit();
+      $$(selector).forEach(el => this.applyRule(el, rule));
+    },
+    resetElement(selector) {
+      const layout = getLayout();
+      const idx = layout.findIndex(r => r.selector === selector);
+      if (idx >= 0) layout.splice(idx, 1);
+      $$(selector).forEach(el => {
+        el.style.cssText = '';
+        delete el.dataset.mesHid;
+        if (el.dataset.mesOrigText) { el.textContent = el.dataset.mesOrigText; delete el.dataset.mesOrigText; }
+      });
+      commit();
+    }
+  };
+  /* =========================================================
+   * 4b. ЗАМЕНА КАРТИНОК НА САЙТЕ
+   *     <img> — по исходному адресу (работает на всех таких же картинках)
+   *     фон (background-image) — по точному пути элемента
+   * ========================================================= */
+  const ImageReplacer = {
+    entry(kind, key) { return getImages().find(e => e.kind === kind && e.key === key); },
+    bgUrl(el) {
+      if (!el || el.nodeType !== 1) return null;
+      const bi = getComputedStyle(el).backgroundImage;
+      if (!bi || bi === 'none') return null;
+      const m = bi.match(/url\(["']?(.*?)["']?\)/);
+      return m ? m[1] : null;
+    },
+    // верхняя картинка под курсором (даже если сверху прозрачный оверлей)
+    findImg(x, y) {
+      const stack = document.elementsFromPoint(x, y).slice(0, 6);
+      for (const el of stack) {
+        if (el.closest('#mes-editor-root')) continue;
+        if (el.tagName === 'IMG') return el;
+      }
+      return null;
+    },
+    // какая картинка относится к выбранному элементу
+    target(el) {
+      if (!el) return null;
+      if (el.tagName === 'IMG') return el;
+      if (this.bgUrl(el)) return el;
+      if (el.querySelectorAll) { const imgs = el.querySelectorAll('img'); if (imgs.length === 1) return imgs[0]; }
+      for (let i = 0, p = el.parentElement; p && i < 3 && p !== document.body; i++, p = p.parentElement) if (this.bgUrl(p)) return p;
+      return null;
+    },
+    imgKey(img) { return (img.dataset.mesNew && img.src === img.dataset.mesNew) ? img.dataset.mesOrig : img.src; },
+    keyOf(el) { return el.tagName === 'IMG' ? this.imgKey(el) : SelectorRegistry.pathFor(el); },
+    kindOf(el) { return el.tagName === 'IMG' ? 'img' : 'bg'; },
+    async urlOf(e) { return e.assetKey ? await AssetStore.toURL(e.assetKey) : e.url; },
+    setImg(img, key, url) {
+      const abs = (() => { try { return new URL(url, location.href).href; } catch (e) { return url; } })();
+      const replaced = img.dataset.mesNew && img.src === img.dataset.mesNew;
+      const orig = replaced ? img.dataset.mesOrig : img.src;
+      if (orig !== key) return;
+      if (replaced && img.dataset.mesNew === abs) return;
+      img.dataset.mesOrig = orig;
+      if (img.hasAttribute('srcset')) { if (!img.dataset.mesSrcset) img.dataset.mesSrcset = img.getAttribute('srcset'); img.removeAttribute('srcset'); }
+      const pic = img.parentElement;
+      if (pic && pic.tagName === 'PICTURE') $$('source', pic).forEach(s => { if (s.hasAttribute('srcset')) { s.dataset.mesSrcset = s.getAttribute('srcset'); s.removeAttribute('srcset'); } });
+      img.src = url;
+      img.dataset.mesNew = img.src;
+      if (getComputedStyle(img).objectFit === 'fill') { img.style.setProperty('object-fit', 'cover', 'important'); img.dataset.mesFit = '1'; }
+    },
+    setBg(el, url) { el.style.setProperty('background-image', `url("${url}")`, 'important'); el.dataset.mesBg = '1'; },
+    async applyAll() {
+      const list = getImages();
+      if (!list.length) return;
+      const urls = new Map();
+      for (const e of list) urls.set(e, await this.urlOf(e));
+      const imgs = Array.from(document.images);
+      for (const e of list) {
+        const url = urls.get(e); if (!url) continue;
+        if (e.kind === 'img') imgs.forEach(img => { if (!img.closest('#mes-editor-root')) this.setImg(img, e.key, url); });
+        else { try { $$(e.key).forEach(el => this.setBg(el, url)); } catch (err) {} }
+      }
+    },
+    async replaceWith(el, { file, url }) {
+      const kind = this.kindOf(el), key = this.keyOf(el);
+      const list = getImages();
+      let e = this.entry(kind, key);
+      if (!e) { e = { kind, key, assetKey: null, url: '' }; list.push(e); }
+      const old = e.assetKey;
+      if (file) {
+        const blob = await shrinkImage(file, IMG_MAX);
+        const ak = 'img_' + uid();
+        await AssetStore.put(ak, blob);
+        e.assetKey = ak; e.url = '';
+      } else { e.assetKey = null; e.url = url; }
+      commit();
+      await this.applyAll();
+      if (old && old !== e.assetKey) AssetStore.drop(old);
+    },
+    restoreImg(img) {
+      if (!img.dataset.mesNew) return;
+      const pic = img.parentElement;
+      img.src = img.dataset.mesOrig;
+      if (img.dataset.mesSrcset) img.setAttribute('srcset', img.dataset.mesSrcset);
+      if (pic && pic.tagName === 'PICTURE') $$('source[data-mes-srcset]', pic).forEach(s => { s.setAttribute('srcset', s.dataset.mesSrcset); delete s.dataset.mesSrcset; });
+      if (img.dataset.mesFit) img.style.removeProperty('object-fit');
+      ['mesNew', 'mesOrig', 'mesSrcset', 'mesFit'].forEach(k => delete img.dataset[k]);
+    },
+    restore(el) {
+      const kind = this.kindOf(el), key = this.keyOf(el);
+      const list = getImages();
+      const i = list.findIndex(e => e.kind === kind && e.key === key);
+      if (i < 0) return;
+      const [removed] = list.splice(i, 1);
+      if (kind === 'img') Array.from(document.images).forEach(img => { if (img.dataset.mesOrig === key) this.restoreImg(img); });
+      else { try { $$(key).forEach(n => { n.style.removeProperty('background-image'); delete n.dataset.mesBg; }); } catch (err) {} }
+      AssetStore.drop(removed.assetKey);
+      commit();
+    }
+  };
+  /* =========================================================
+   * 4c. ЗАМЕНА ТЕКСТА (по исходному тексту — переживает листание дней)
+   * ========================================================= */
+  const TextEditor = {
+    orig: new WeakMap(), applied: new WeakMap(),
+    walk(fn) {
+      const w = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, {
+        acceptNode: n => {
+          const p = n.parentElement; if (!p) return 2;
+          const t = p.tagName;
+          if (t === 'SCRIPT' || t === 'STYLE' || t === 'NOSCRIPT' || t === 'TEXTAREA') return 2;
+          if (p.closest('#mes-editor-root')) return 2;
+          return 1;
+        }
+      });
+      let n; while ((n = w.nextNode())) fn(n);
+    },
+    applyAll() {
+      const list = getTexts();
+      if (!list.length) return;
+      const m = new Map(); list.forEach(t => m.set(t.from, t.to));
+      this.walk(n => {
+        if (this.applied.has(n) && n.nodeValue.trim() === this.applied.get(n)) return;
+        const v = n.nodeValue, t = v.trim();
+        if (!t || !m.has(t)) return;
+        const to = m.get(t);
+        this.orig.set(n, v); this.applied.set(n, to);
+        n.nodeValue = v.replace(t, to);
+      });
+    },
+    revertAll() {
+      this.walk(n => {
+        if (!this.orig.has(n)) return;
+        if (n.nodeValue.trim() === this.applied.get(n)) n.nodeValue = this.orig.get(n);
+        this.orig.delete(n); this.applied.delete(n);
+      });
+    },
+    // собственный текст элемента: что сейчас показано и каким был оригинал
+    part(el) {
+      if (!el) return null;
+      for (const n of el.childNodes) {
+        if (n.nodeType === 3 && n.nodeValue.trim()) {
+          const cur = n.nodeValue.trim();
+          const from = this.orig.has(n) ? this.orig.get(n).trim() : cur;
+          return { node: n, from, cur };
+        }
+      }
+      return null;
+    },
+    set(from, to) {
+      const list = getTexts();
+      const i = list.findIndex(t => t.from === from);
+      to = (to || '').trim();
+      if (!to || to === from) { if (i >= 0) list.splice(i, 1); }
+      else if (i >= 0) list[i].to = to;
+      else list.push({ from, to });
+      commit();
+      this.revertAll(); this.applyAll();
+    }
+  };
+  /* =========================================================
+   * 4d. БЛОКИ: захват целого списка уроков + разбор на части
+   * ========================================================= */
+  const Blocks = {
+    sig(n) { return n.tagName + '|' + normCls(n.getAttribute('class')); },
+    // ближайший контейнер, в котором лежит несколько одинаковых элементов (список уроков)
+    findBlock(el) {
+      let node = el;
+      while (node && node !== document.body && node.parentElement) {
+        const p = node.parentElement; const sig = this.sig(node);
+        let same = 0;
+        for (const c of p.children) if (this.sig(c) === sig) same++;
+        if (same >= 2 && p !== document.body) return p;
+        node = p;
+      }
+      return el.parentElement && el.parentElement !== document.body ? el.parentElement : el;
+    },
+    role(c, own, bg) {
+      const t = c.tagName;
+      if (t === 'IMG') return 'Картинка';
+      if (bg && !own) return 'Фон';
+      if (t === 'svg' || t === 'SVG') return 'Иконка';
+      if (t === 'BUTTON' || c.getAttribute('role') === 'button') return 'Кнопка';
+      if (t === 'A') return 'Ссылка';
+      if (/^H[1-6]$/.test(t)) return 'Заголовок';
+      if (own) {
+        const s = own.cur;
+        if (/^\d{1,2}[:.]\d{2}(\s*[–—-]\s*\d{1,2}[:.]\d{2})?$/.test(s)) return 'Время';
+        if (/^[\d.,\s]+$/.test(s)) return 'Число';
+        if (/каб|ауд/i.test(s)) return 'Кабинет';
+        return 'Текст';
+      }
+      return 'Блок';
+    },
+    parts(root) {
+      const out = [];
+      const SKIP = /^(SCRIPT|STYLE|NOSCRIPT|BR|HR|PATH|LINK|META)$/i;
+      const walk = (el, d) => {
+        for (const c of el.children) {
+          if (out.length >= 60) return;
+          if (SKIP.test(c.tagName) || c.closest('#mes-editor-root')) continue;
+          const r = c.getBoundingClientRect();
+          if (!r.width && !r.height) continue;
+          const own = TextEditor.part(c);
+          const t = c.tagName;
+          const isSvg = typeof SVGElement !== 'undefined' && c instanceof SVGElement;
+          const bg = isSvg ? null : ImageReplacer.bgUrl(c);
+          const kids = c.children.length;
+          if (!(own || t === 'IMG' || t === 'BUTTON' || t === 'A' || bg || isSvg || kids)) continue;
+          out.push({ el: c, depth: d, role: this.role(c, own, bg), text: (own ? own.cur : (kids ? kids + ' эл.' : '')).slice(0, 40) });
+          if (!isSvg && d < 3) walk(c, d + 1);
+        }
+      };
+      if (root) walk(root, 0);
+      return out;
+    }
+  };
+  /* =========================================================
+   * 5. SURFACES — эвристика по фактическому цвету элементов.
+   *    data-mes-s  = 1|2  светлая «поверхность» (2 = вложенная)
+   *    data-mes-m  = серая поверхность
+   *    data-mes-w  = огромная обёртка страницы
+   *    data-mes-t  = 1|2  тёмный/серый текст (для тёмной темы)
+   *    data-mes-bc = светлая рамка
+   *    data-mes-pb = светлый ::before/::after (только при наведении)
+   *    data-mes-a  = элемент анимируется прямо сейчас
+   *
+   *    Анти-мерцание: новые узлы обрабатываются СИНХРОННО в колбэке
+   *    MutationObserver (до кадра). Hover-состояния — в requestAnimationFrame
+   *    (тоже до отрисовки), поэтому «белых вспышек» при наведении нет.
+   * ========================================================= */
+  const Surfaces = {
+    seen: new WeakSet(),
+    kind: new WeakMap(),
+    surf: new WeakSet(),
+    token: 0,
+    animIdx: 0,
+    ATTRS: ['data-mes-s', 'data-mes-m', 'data-mes-w', 'data-mes-t', 'data-mes-bc', 'data-mes-a', 'data-mes-pb'],
+    rec: new Map(), hraf: 0, hpending: null, htimer: 0,
+    needSurf() { const m = getTheme().misc; return !!(m.dark || m.glass); },
+    parse(c) {
+      if (!c) return null;
+      const m = c.match(/rgba?\(([^)]+)\)/);
+      if (!m) return null;
+      const p = m[1].split(/[\s,\/]+/).filter(Boolean).map(parseFloat);
+      if (p.length < 3 || p.some(isNaN)) return null;
+      return { r: p[0], g: p[1], b: p[2], a: p.length > 3 ? p[3] : 1 };
+    },
+    lum(c) { return (0.299 * c.r + 0.587 * c.g + 0.114 * c.b) / 255; },
+    sat(c) { return Math.max(c.r, c.g, c.b) - Math.min(c.r, c.g, c.b); },
+    applyOps(ops) {
+      for (const [el, k, v] of ops) {
+        if (k.charCodeAt(0) === 45) el.style.setProperty(k, String(v));
+        else el.setAttribute(k, v);
+      }
+    },
+    reset() {
+      this.token++;
+      this.seen = new WeakSet(); this.kind = new WeakMap(); this.surf = new WeakSet();
+      this.rec.clear();
+      $$(this.ATTRS.map(a => `[${a}]`).join(',')).forEach(el => this.ATTRS.forEach(a => el.removeAttribute(a)));
+    },
+    scan() {
+      if (!this.needSurf()) return;
+      const list = document.body.getElementsByTagName('*');
+      const tok = ++this.token;
+      this.animIdx = 0;
+      const chunk = LITE ? 150 : 400;
+      let i = 0;
+      const step = () => {
+        if (tok !== this.token) return;
+        const ops = [];
+        const end = Math.min(i + chunk, list.length);
+        for (; i < end; i++) { try { this.visit(list[i], ops); } catch (e) {} }
+        this.applyOps(ops);
+        if (i < list.length) setTimeout(step, LITE ? 16 : 0);
+      };
+      step();
+    },
+    fast(nodes) {
+      if (!this.needSurf() || !nodes.length) return;
+      let list = Array.from(new Set(nodes));
+      if (list.length <= 500) list.sort((a, b) => (a.compareDocumentPosition(b) & 4 ? -1 : 1));
+      const ops = [];
+      let budget = LITE ? 2500 : 5000;
+      outer: for (const root of list) {
+        if (!root.isConnected) continue;
+        if (budget-- <= 0) break;
+        try { this.visit(root, ops); } catch (e) {}
+        const all = root.querySelectorAll('*');
+        for (let i = 0; i < all.length; i++) {
+          if (budget-- <= 0) break outer;
+          try { this.visit(all[i], ops); } catch (e) {}
+        }
+      }
+      this.applyOps(ops);
+    },
+    nearestKind(el) {
+      for (let p = el; p && p !== document.body; p = p.parentElement) {
+        const k = this.kind.get(p); if (k) return k;
+      }
+      return null;
+    },
+    hasSurfAncestor(el) {
+      for (let p = el.parentElement; p && p !== document.body; p = p.parentElement) if (this.surf.has(p)) return true;
+      return false;
+    },
+    // hover=true — «пробный» визит без запоминания (для наведения/фокуса)
+    visit(el, ops, hover) {
+      if (!hover && this.seen.has(el)) return;
+      if (typeof SVGElement !== 'undefined' && el instanceof SVGElement) { if (!hover) this.seen.add(el); return; }
+      const tag = el.tagName;
+      if (tag === 'SCRIPT' || tag === 'STYLE' || tag === 'IMG' || tag === 'VIDEO' || tag === 'CANVAS' || tag === 'NOSCRIPT' || tag === 'IFRAME') { if (!hover) this.seen.add(el); return; }
+      if (el.id === 'mes-editor-root' || el.closest('#mes-editor-root') || el.id === 'mes-theme-effects' || el.id === 'mes-bg-video' || el.id === 'mes-bg-layer') { if (!hover) this.seen.add(el); return; }
+      const rect = el.getBoundingClientRect();
+      if (!rect.width && !rect.height) return;
+      const cs = getComputedStyle(el);
+      if (cs.display === 'none' || cs.display === 'contents') return;
+      if (!hover) this.seen.add(el);
+      const bg = this.parse(cs.backgroundColor);
+      let k = null;
+      if (bg && bg.a > 0.3) {
+        const lum = this.lum(bg);
+        k = this.sat(bg) > 60 ? 'c' : lum > 0.78 ? 'l' : lum > 0.45 ? 'm' : 'd';
+      } else if (cs.backgroundImage && cs.backgroundImage !== 'none') {
+        k = 'c';
+      }
+      if (k && !hover) this.kind.set(el, k);
+      if (k === 'l' || k === 'm') {
+        const W = window.innerWidth, H = window.innerHeight;
+        if (rect.width >= W * 0.95 && rect.height >= H * 0.8) {
+          ops.push([el, 'data-mes-w', '1']);
+        } else if (rect.width >= 60 && rect.height >= 28) {
+          const nested = this.hasSurfAncestor(el);
+          if (!hover) this.surf.add(el);
+          ops.push([el, 'data-mes-s', nested ? '2' : '1']);
+          if (k === 'm') ops.push([el, 'data-mes-m', '1']);
+          if (!hover && !nested && rect.width > 200 && rect.height > 40 && rect.height < 600 && cs.position !== 'fixed' && cs.position !== 'sticky') {
+            ops.push([el, 'data-mes-a', '1']);
+            ops.push([el, '--mes-i', Math.min(this.animIdx++, 8)]);
+          }
+        }
+      }
+      if (parseFloat(cs.borderTopWidth) > 0 && cs.borderTopStyle !== 'none') {
+        const bc = this.parse(cs.borderTopColor);
+        if (bc && bc.a > 0.2 && this.lum(bc) > 0.8 && this.sat(bc) < 40) ops.push([el, 'data-mes-bc', '1']);
+      }
+      if (hover) {
+        // светлые ::before / ::after, которые сайт включает при наведении
+        for (const ps of ['::before', '::after']) {
+          const pc = getComputedStyle(el, ps);
+          if (!pc || pc.content === 'none' || pc.content === 'normal' || pc.display === 'none') continue;
+          const pb = this.parse(pc.backgroundColor);
+          if (pb && pb.a > 0.3 && this.lum(pb) > 0.78 && this.sat(pb) < 60) { ops.push([el, 'data-mes-pb', '1']); break; }
+        }
+      }
+      let hasText = tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT';
+      if (!hasText) {
+        for (const n of el.childNodes) { if (n.nodeType === 3 && n.nodeValue.trim()) { hasText = true; break; } }
+      }
+      if (hasText) {
+        const tc = this.parse(cs.color);
+        if (tc && tc.a > 0.3 && this.sat(tc) < 50) {
+          const bk = (hover && k) ? k : this.nearestKind(el);
+          if (bk !== 'c' && bk !== 'd') {
+            const l = this.lum(tc);
+            if (l < 0.3) ops.push([el, 'data-mes-t', '1']);
+            else if (l < 0.55) ops.push([el, 'data-mes-t', '2']);
+          }
+        }
+      }
+    },
+    /* ---------- hover / focus / active ---------- */
+    hoverSchedule(target) {
+      this.hpending = target;
+      if (this.hraf) return;
+      this.hraf = requestAnimationFrame(() => { this.hraf = 0; try { this.hoverRun(this.hpending); } catch (e) {} });
+    },
+    hoverRun(t) {
+      const keep = new Map();
+      const keepAdd = (el, k) => { let s = keep.get(el); if (!s) keep.set(el, (s = new Set())); s.add(k); };
+      if (this.needSurf() && t && t.nodeType === 1 && !t.closest('#mes-editor-root')) {
+        const list = [];
+        let p = t;
+        for (let i = 0; i < 6 && p && p !== document.body && p !== document.documentElement; i++, p = p.parentElement) list.push(p);
+        const kids = t.querySelectorAll('*');
+        const lim = Math.min(kids.length, LITE ? 25 : 60);
+        for (let i = 0; i < lim; i++) list.push(kids[i]);
+        // уже помеченные нами элементы цепочки остаются помеченными, пока курсор над ними
+        for (const el of list) { const m = this.rec.get(el); if (m) m.forEach((_, k) => keepAdd(el, k)); }
+        const ops = [];
+        for (const el of list) { try { this.visit(el, ops, true); } catch (e) {} }
+        for (const [el, k, v] of ops) {
+          if (k.charCodeAt(0) === 45) continue;
+          let m = this.rec.get(el);
+          const mine = m && m.has(k);
+          if (el.hasAttribute(k) && !mine) continue;
+          if (!mine) { if (!m) this.rec.set(el, (m = new Map())); m.set(k, true); el.setAttribute(k, v); }
+          keepAdd(el, k);
+        }
+      }
+      clearTimeout(this.htimer);
+      // снимаем временные метки с задержкой — пока сайт плавно гасит свой hover-фон
+      this.htimer = setTimeout(() => this.hoverClean(keep), 350);
+    },
+    hoverClean(keep) {
+      for (const [el, m] of this.rec) {
+        for (const k of Array.from(m.keys())) {
+          if (keep.get(el) && keep.get(el).has(k)) continue;
+          el.removeAttribute(k); m.delete(k);
+        }
+        if (!m.size) this.rec.delete(el);
+      }
+    }
+  };
+  /* =========================================================
+   * 5b. АНИМАЦИЯ ПОЯВЛЕНИЯ новых блоков (листание дней, уроки и т.д.)
+   *     Анимируются добавленные в DOM узлы — не зависит от того,
+   *     вложены ли они в уже существующую «поверхность».
+   * ========================================================= */
+  const Anim = {
+    lastParent: new WeakMap(),
+    check(el) { // 0 — пропустить, 1 — подходит, 2 — прозрачная обёртка (display: contents)
+      if (!el || el.nodeType !== 1) return 0;
+      const tag = el.tagName;
+      if (/^(SCRIPT|STYLE|NOSCRIPT|IMG|CANVAS|VIDEO|IFRAME|SVG|LINK|META)$/i.test(tag)) return 0;
+      if (el.id === 'mes-editor-root' || el.id === 'mes-theme-effects' || el.id === 'mes-bg-video' || el.id === 'mes-bg-layer') return 0;
+      if (el.closest('#mes-editor-root')) return 0;
+      const cs = getComputedStyle(el);
+      if (cs.display === 'none') return 0;
+      if (cs.display === 'contents') return 2;
+      if (cs.position === 'absolute' || cs.position === 'fixed' || cs.position === 'sticky') return 0;
+      if (cs.transform !== 'none') return 0;
+      const r = el.getBoundingClientRect();
+      if (r.width < 140 || r.height < 32 || r.height > 900) return 0;
+      if (r.bottom < -50 || r.top > window.innerHeight + 250) return 0;
+      return 1;
+    },
+    animate(nodes) {
+      const m = getTheme().misc;
+      if (!m.anim || m.anim === 'none' || !nodes.length) return;
+      const cap = LITE ? 12 : 24;
+      const targets = [];
+      const stamp = performance.now();
+      const collect = (el, d) => {
+        if (targets.length >= cap) return;
+        const q = this.check(el);
+        if (q === 0) return;
+        if (q === 2) { if (d < 3) for (const c of el.children) collect(c, d + 1); return; }
+        if (el.parentElement && el.parentElement.closest('[data-mes-a]')) return;
+        const kids = d === 0 ? Array.from(el.children).filter(c => this.check(c) === 1) : [];
+        if (kids.length >= 2) kids.forEach(c => { if (targets.length < cap) targets.push(c); });
+        else targets.push(el);
+      };
+      const roots = nodes.length > 40 ? nodes.slice(0, 40) : nodes;
+      for (const root of roots) {
+        if (!root.isConnected) continue;
+        const par = root.parentElement;
+        const prev = par && this.lastParent.get(par);
+        if (prev && prev !== stamp && stamp - prev < 350) continue;
+        collect(root, 0);
+        if (par) this.lastParent.set(par, stamp);
+      }
+      let idx = 0;
+      for (const el of targets) {
+        el.style.setProperty('--mes-i', String(Math.min(idx++, 8)));
+        el.setAttribute('data-mes-a', '1');
+      }
+    }
+  };
+  // после окончания анимации снимаем метку (экономим память и позволяем анимировать снова)
+  document.addEventListener('animationend', (e) => {
+    const el = e.target;
+    if (el && el.hasAttribute && el.hasAttribute('data-mes-a') && /^mes/.test(e.animationName)) el.removeAttribute('data-mes-a');
+  }, true);
+  /* =========================================================
+   * 6. THEME ENGINE
+   * ========================================================= */
+  const ThemeEngine = {
+    _face: null, _fontKey: null,
+    async apply() {
+      const t = getTheme();
+      this.applyAutoDark(t.misc);
+      await this.applyBackground(t.background, t.misc);
+      this.applyFonts(t.fonts).catch(() => {});
+      this.applyMisc(t.misc);
+      Surfaces.scan();
+      AudioEngine.applyMusic(t.music);
+      AudioEngine.applyClickSound(t.clickSound);
+      EffectsEngine.apply(t.effects);
+    },
+    applyAutoDark(misc) {
+      if (!misc.autoDark) return;
+      misc.dark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    },
+    async applyBackground(bg, misc) {
+      const root = document.documentElement;
+      const body = document.body;
+      let layer = '';
+      let video = null;
+      // на телефонах background-attachment:fixed очень тяжёлый — используем фиксированный слой
+      const fx = LITE ? '' : ' fixed';
+      const dim = misc.dark ? `linear-gradient(rgba(0,0,0,.5),rgba(0,0,0,.5)) center/cover no-repeat${fx}, ` : '';
+      let heavy = false;
+      if (bg.type === 'color') layer = bg.color;
+      else if (bg.type === 'gradient') { layer = `linear-gradient(${bg.angle}deg, ${bg.grad[0]}, ${bg.grad[1]})${fx}`; heavy = true; }
+      else if (bg.type === 'image') {
+        const url = bg.assetKey ? await AssetStore.toURL(bg.assetKey) : bg.url;
+        if (url) {
+          const pos = bg.fit === 'repeat' ? '0 0/auto repeat' : `center/${bg.fit} no-repeat`;
+          layer = `${dim}url("${url}") ${pos}${fx}`; heavy = true;
+        }
+      } else if (bg.type === 'video' && bg.url) video = bg.url;
+      let v = $('#mes-bg-video');
+      if (video) {
+        if (!v) {
+          v = document.createElement('video');
+          v.id = 'mes-bg-video'; v.muted = true; v.loop = true; v.autoplay = true; v.playsInline = true;
+          v.setAttribute('preload', LITE ? 'metadata' : 'auto');
+          v.style.cssText = 'position:fixed;inset:0;width:100%;height:100%;object-fit:cover;z-index:-1;pointer-events:none;';
+          document.body.appendChild(v);
+        }
+        if (v.getAttribute('src') !== video) { v.src = video; v.play().catch(() => {}); }
+        v.style.filter = misc.dark ? 'brightness(.55)' : '';
+      } else if (v) v.remove();
+      let L = $('#mes-bg-layer');
+      const useLayer = LITE && heavy && !!layer;
+      if (useLayer) {
+        if (!L) {
+          L = document.createElement('div'); L.id = 'mes-bg-layer';
+          L.style.cssText = 'position:fixed;inset:0;z-index:-1;pointer-events:none;';
+          body.insertBefore(L, body.firstChild);
+        }
+        L.style.background = layer;
+      } else if (L) L.remove();
+      if (layer && !useLayer) {
+        root.style.setProperty('background', layer, 'important');
+        body.style.setProperty('background', 'transparent', 'important');
+        root.setAttribute('data-mes-bg', '1');
+      } else if (layer || video) {
+        root.style.setProperty('background', 'transparent', 'important');
+        body.style.setProperty('background', 'transparent', 'important');
+        root.setAttribute('data-mes-bg', '1');
+      } else {
+        root.style.removeProperty('background');
+        body.style.removeProperty('background');
+        root.removeAttribute('data-mes-bg');
+      }
+    },
+    async applyFonts(f) {
+      let style = $('#mes-theme-fonts');
+      if (!style) { style = document.createElement('style'); style.id = 'mes-theme-fonts'; document.head.appendChild(style); }
+      // шрифт-файл с компьютера: грузим из ArrayBuffer (не зависит от CSP сайта)
+      let custom = false;
+      if (f.fileKey) {
+        if (this._fontKey !== f.fileKey) {
+          try {
+            const blob = await AssetStore.get(f.fileKey);
+            if (blob) {
+              const face = new FontFace('MesCustomFont', await blob.arrayBuffer());
+              await face.load();
+              if (this._face) document.fonts.delete(this._face);
+              document.fonts.add(face);
+              this._face = face; this._fontKey = f.fileKey;
+            }
+          } catch (e) { log('font error', e); }
+        }
+        custom = this._fontKey === f.fileKey;
+      } else if (this._face) {
+        document.fonts.delete(this._face); this._face = null; this._fontKey = null;
+      }
+      const rules = [];
+      const fam = custom ? 'MesCustomFont' : f.family;
+      if (!custom && f.family) {
+        const q = f.family.replace(/\s+/g, '+');
+        rules.push(`@import url('https://fonts.googleapis.com/css2?family=${q}:wght@400;600;700&display=swap');`);
+      }
+      if (fam) {
+        rules.push(`html body, html body *:not(svg):not(i):not([class*="icon" i]):not([class*="Icon"]):not([class*="material"]):not([class*="fa-"]) { font-family: '${fam}', sans-serif !important; }`);
+      }
+      if (f.size) rules.push(`body { font-size: ${f.size}px !important; }`);
+      const txt = rules.join('\n');
+      if (style.textContent !== txt) style.textContent = txt;
+    },
+    applyMisc(m) {
+      const root = document.documentElement;
+      const toggle = (a, on, v = '1') => on ? root.setAttribute(a, v) : root.removeAttribute(a);
+      toggle('data-mes-dark', m.dark);
+      toggle('data-mes-glass', m.glass);
+      toggle('data-mes-anim', m.anim && m.anim !== 'none', m.anim);
+      const blur = LITE ? Math.min(m.glassBlur ?? 10, 8) : (m.glassBlur ?? 10);
+      root.style.setProperty('--mes-g-op', String(m.glassOpacity));
+      root.style.setProperty('--mes-g-blur', blur + 'px');
+      let style = $('#mes-theme-misc');
+      if (!style) { style = document.createElement('style'); style.id = 'mes-theme-misc'; document.head.appendChild(style); }
+      const R = [];
+      /* ---------- Тёмная тема ---------- */
+      R.push(`
+        html[data-mes-dark] { color-scheme: dark; }
+        html[data-mes-dark]:not([data-mes-bg]), html[data-mes-dark]:not([data-mes-bg]) body { background: #14161a !important; }
+        html[data-mes-dark]:not([data-mes-glass]) [data-mes-w] { background-color: #14161a !important; }
+        html[data-mes-dark]:not([data-mes-glass]) [data-mes-s] { background-color: #1f2227 !important; }
+        html[data-mes-dark]:not([data-mes-glass]) [data-mes-s="2"] { background-color: #2a2e35 !important; }
+        html[data-mes-dark]:not([data-mes-glass]) [data-mes-s][data-mes-m] { background-color: #32363e !important; }
+        html[data-mes-dark] [data-mes-t="1"] { color: #eceef1 !important; }
+        html[data-mes-dark] [data-mes-t="2"] { color: #a9aeb7 !important; }
+        html[data-mes-dark] [data-mes-bc] { border-color: #3b3f47 !important; }
+        html[data-mes-dark] [data-mes-pb]::before, html[data-mes-dark] [data-mes-pb]::after { background-color: rgba(255,255,255,.08) !important; }
+        html[data-mes-dark] input, html[data-mes-dark] textarea, html[data-mes-dark] select { color-scheme: dark; }
+        html[data-mes-dark] [data-mes-s], html[data-mes-dark] [data-mes-w] { transition: background-color 0s, border-color 0s, box-shadow 0s, transform .2s, opacity .2s !important; }
+      `);
+      /* ---------- Стекло ---------- */
+      if (m.glass) {
+        const sat = LITE ? '' : ' saturate(150%)';
+        const shadow = LITE ? '0 2px 10px rgba(0,0,0,.10)' : '0 6px 24px rgba(0,0,0,.10)';
+        const shadowD = LITE ? '0 2px 10px rgba(0,0,0,.30)' : '0 6px 24px rgba(0,0,0,.35)';
+        R.push(`
+          html[data-mes-glass] [data-mes-w] { background-color: transparent !important; transition: none !important; }
+          html[data-mes-glass] [data-mes-s] {
+            background-color: rgba(255,255,255,var(--mes-g-op)) !important;
+            -webkit-backdrop-filter: blur(var(--mes-g-blur))${sat} !important;
+            backdrop-filter: blur(var(--mes-g-blur))${sat} !important;
+            box-shadow: inset 0 0 0 1px rgba(255,255,255,.28), ${shadow} !important;
+            transition: background-color 0s, border-color 0s, box-shadow 0s, backdrop-filter 0s, transform .2s, opacity .2s !important;
+          }
+          html[data-mes-glass] [data-mes-s="2"] {
+            background-color: rgba(255,255,255,calc(var(--mes-g-op) * .55)) !important;
+            -webkit-backdrop-filter: none !important; backdrop-filter: none !important;
+            box-shadow: inset 0 0 0 1px rgba(255,255,255,.2) !important;
+          }
+          html[data-mes-glass]:not([data-mes-dark]) [data-mes-pb]::before, html[data-mes-glass]:not([data-mes-dark]) [data-mes-pb]::after { background-color: rgba(255,255,255,var(--mes-g-op)) !important; }
+          html[data-mes-glass][data-mes-dark] [data-mes-s] {
+            background-color: rgba(18,20,24,var(--mes-g-op)) !important;
+            box-shadow: inset 0 0 0 1px rgba(255,255,255,.10), ${shadowD} !important;
+          }
+          html[data-mes-glass][data-mes-dark] [data-mes-s="2"] {
+            background-color: rgba(40,44,52,calc(var(--mes-g-op) * .7)) !important;
+            box-shadow: inset 0 0 0 1px rgba(255,255,255,.08) !important;
+          }
+        `);
+      }
+      /* ---------- Анимации: активна только ОДНА (m.anim) ---------- */
+      const sx = LITE ? '56px' : '90px';
+      const k = LITE ? 0.7 : 1;
+      R.push(`
+        @keyframes mesFade  { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+        @keyframes mesSlide { from { opacity: 0; transform: translateX(${sx}); } to { opacity: 1; transform: none; } }
+        @keyframes mesZoom  { from { opacity: 0; transform: scale(.93); } to { opacity: 1; transform: none; } }
+        html[data-mes-anim="fade"]  [data-mes-a] { animation: mesFade  ${(.5 * k).toFixed(2)}s cubic-bezier(.22,1,.36,1) backwards; animation-delay: calc(var(--mes-i, 0) * ${Math.round(40 * k)}ms); }
+        html[data-mes-anim="slide"] [data-mes-a] { animation: mesSlide ${(.55 * k).toFixed(2)}s cubic-bezier(.16,1,.3,1) backwards; animation-delay: calc(var(--mes-i, 0) * ${Math.round(55 * k)}ms); }
+        html[data-mes-anim="zoom"]  [data-mes-a] { animation: mesZoom  ${(.45 * k).toFixed(2)}s cubic-bezier(.22,1,.36,1) backwards; animation-delay: calc(var(--mes-i, 0) * ${Math.round(40 * k)}ms); }
+        html[data-mes-anim="slide"] { overflow-x: clip; }
+      `);
+      if (m.radius != null) R.push(`button, a[role="button"], [class*="button"], [class*="Button"], [data-mes-s] { border-radius: ${m.radius}px !important; }`);
+      if (m.cursor) R.push(`body { cursor: url("${m.cursor}"), auto; }`);
+      const txt = R.join('\n');
+      if (style.textContent !== txt) style.textContent = txt;
+    }
+  };
+  /* =========================================================
+   * 7. AUDIO ENGINE
+   * ========================================================= */
+  const AudioEngine = {
+    musicEl: null, _currentSrc: null, _ctx: null,
+    ensureCtx() { if (!this._ctx) this._ctx = new (window.AudioContext || window.webkitAudioContext)(); if (this._ctx.state === 'suspended') this._ctx.resume(); return this._ctx; },
+    async applyMusic(m) {
+      if (!m.enabled) { if (this.musicEl) { this.musicEl.pause(); this.musicEl = null; this._currentSrc = null; } return; }
+      const src = m.assetKey ? await AssetStore.toURL(m.assetKey) : m.url;
+      if (!src) return;
+      if (this.musicEl && this._currentSrc === src) {
+        this.musicEl.loop = !!m.loop; this.musicEl.volume = m.volume;
+        if (this.musicEl.paused) this.musicEl.play().catch(() => {});
+        return;
+      }
+      if (this.musicEl) this.musicEl.pause();
+      this._currentSrc = src;
+      this.musicEl = new Audio(src); this.musicEl.loop = !!m.loop; this.musicEl.volume = m.volume;
+      const playFn = () => { if (this.musicEl && this.musicEl.paused) this.musicEl.play().catch(() => {}); };
+      document.addEventListener('pointerdown', playFn, { once: true });
+      playFn();
+    },
+    applyClickSound(c) {
+      if (this._clickHandler) document.removeEventListener('pointerdown', this._clickHandler, true);
+      if (!c.enabled || c.preset === 'none') return;
+      this._clickHandler = (e) => {
+        if (e.target.closest && e.target.closest('button, a[role="button"], [class*="button"], [class*="Button"]')) this.playClick(c.preset, c.volume);
+      };
+      document.addEventListener('pointerdown', this._clickHandler, true);
+    },
+    playClick(preset, volume) {
+      try {
+        const ctx = this.ensureCtx(); const g = ctx.createGain(); g.gain.value = (volume ?? 0.6) * 0.4; g.connect(ctx.destination);
+        const o = ctx.createOscillator(); const now = ctx.currentTime;
+        if (preset === 'pop') { o.type = 'sine'; o.frequency.setValueAtTime(600, now); o.frequency.exponentialRampToValueAtTime(200, now + 0.08); }
+        else if (preset === 'mechanical') { o.type = 'square'; o.frequency.setValueAtTime(1200, now); o.frequency.exponentialRampToValueAtTime(300, now + 0.04); }
+        else { o.type = 'sine'; o.frequency.setValueAtTime(800, now); o.frequency.exponentialRampToValueAtTime(300, now + 0.06); }
+        o.connect(g); o.start(now); o.stop(now + 0.2);
+        o.onended = () => { try { o.disconnect(); g.disconnect(); } catch (e) {} };
+      } catch (e) {}
+    }
+  };
+  /* =========================================================
+   * 8. EFFECTS ENGINE (на телефоне — 30 fps и меньше частиц; в фоне вкладки не работает)
+   * ========================================================= */
+  const EffectsEngine = {
+    canvas: null, ctx: null, particles: [], raf: null, mode: null, cfg: null, key: '', last: 0,
+    apply(cfg) {
+      const key = JSON.stringify(cfg);
+      if (key === this.key && (this.canvas || !(cfg.snow || cfg.rain || cfg.stars))) return;
+      this.key = key; this.cfg = cfg;
+      const modes = []; if (cfg.snow) modes.push('snow'); if (cfg.rain) modes.push('rain'); if (cfg.stars) modes.push('stars');
+      if (!modes.length) return this.stop();
+      this.mode = modes[0]; this.start();
+    },
+    start() {
+      if (!this.canvas) {
+        this.canvas = document.createElement('canvas'); this.canvas.id = 'mes-theme-effects';
+        this.canvas.style.cssText = 'position:fixed;inset:0;pointer-events:none;z-index:0;';
+        document.body.appendChild(this.canvas); this.ctx = this.canvas.getContext('2d');
+        if (!this._rs) { this._rs = debounce(() => this.resize(), 200); window.addEventListener('resize', this._rs); }
+      }
+      this.resize(); this.spawn(); if (!this.raf) this.loop();
+    },
+    resize() { if (!this.canvas) return; this.canvas.width = window.innerWidth; this.canvas.height = window.innerHeight; },
+    spawn() {
+      const base = this.cfg?.lowPower ? 40 : LITE ? 70 : 120;
+      const count = Math.floor((this.cfg?.intensity || 1) * base);
+      this.particles = []; for (let i = 0; i < count; i++) this.particles.push(this.makeParticle());
+    },
+    makeParticle() {
+      const w = this.canvas.width, h = this.canvas.height;
+      if (this.mode === 'rain') return { x: Math.random() * w, y: Math.random() * h, vx: 0, vy: 8 + Math.random() * 6, len: 8 + Math.random() * 10 };
+      if (this.mode === 'stars') return { x: Math.random() * w, y: Math.random() * h, r: Math.random() * 1.5 + 0.3, tw: Math.random() * 0.02 };
+      return { x: Math.random() * w, y: Math.random() * h, r: Math.random() * 2 + 1, vx: -1 + Math.random() * 2, vy: 0.5 + Math.random() * 1.5 };
+    },
+    resume() { if (this.canvas && !this.raf && !document.hidden) this.loop(); },
+    loop() {
+      if (document.hidden || !this.canvas) { this.raf = null; return; }
+      this.raf = requestAnimationFrame(() => this.loop());
+      const now = performance.now();
+      if (LITE) { if (now - this.last < 33) return; this.last = now; }
+      const c = this.ctx, w = this.canvas.width, h = this.canvas.height; c.clearRect(0, 0, w, h);
+      const p = this.particles;
+      if (this.mode === 'rain') {
+        c.strokeStyle = 'rgba(180,200,255,0.7)'; c.lineWidth = 1;
+        c.beginPath();
+        p.forEach(pt => { c.moveTo(pt.x, pt.y); c.lineTo(pt.x + pt.vx, pt.y + pt.len); pt.y += pt.vy; if (pt.y > h) { pt.y = -10; pt.x = Math.random() * w; } });
+        c.stroke();
+      } else if (this.mode === 'stars') {
+        c.fillStyle = 'rgba(255,255,200,0.9)';
+        const d = Date.now();
+        p.forEach(pt => { c.globalAlpha = 0.5 + 0.5 * Math.sin(d * pt.tw); c.beginPath(); c.arc(pt.x, pt.y, pt.r, 0, Math.PI * 2); c.fill(); });
+        c.globalAlpha = 1;
+      } else {
+        c.fillStyle = 'rgba(255,255,255,0.9)';
+        c.beginPath();
+        p.forEach(pt => { c.moveTo(pt.x + pt.r, pt.y); c.arc(pt.x, pt.y, pt.r, 0, Math.PI * 2); pt.x += pt.vx + Math.sin(pt.y * 0.01) * 0.3; pt.y += pt.vy; if (pt.y > h) { pt.y = -10; pt.x = Math.random() * w; } if (pt.x < -10) pt.x = w + 10; if (pt.x > w + 10) pt.x = -10; });
+        c.fill();
+      }
+    },
+    stop() { if (this.raf) cancelAnimationFrame(this.raf); this.raf = null; if (this.canvas) { this.canvas.remove(); this.canvas = null; this.ctx = null; this.particles = []; } }
+  };
+  document.addEventListener('visibilitychange', () => {
+    const v = $('#mes-bg-video');
+    if (v) { if (document.hidden) v.pause(); else v.play().catch(() => {}); }
+    EffectsEngine.resume();
+  });
+  /* =========================================================
+   * 9. DRAG & DROP
+   * ========================================================= */
+  const DragDrop = {
+    dragging: null, placeholder: null,
+    init() {
+      this.placeholder = document.createElement('div'); this.placeholder.style.cssText = 'height:2px;background:#fff;box-shadow:0 0 0 1px #000;margin:2px 0;';
+      document.addEventListener('pointerdown', this.onDown.bind(this), true);
+      document.addEventListener('pointermove', this.onMove.bind(this), true);
+      document.addEventListener('pointerup', this.onUp.bind(this), true);
+      document.addEventListener('keydown', this.onKey.bind(this));
+    },
+    onDown(e) {
+      if (!App.editing || e.target.closest('#mes-editor-root')) return;
+      // картинка под курсором имеет приоритет (даже под оверлеем)
+      const img = ImageReplacer.findImg(e.clientX, e.clientY);
+      let el = img || e.target.closest('*');
+      if (!el || !SelectorRegistry.isEditable(el)) return;
+      // Alt + клик — захватить сразу весь блок (список уроков целиком)
+      if (e.altKey) el = Blocks.findBlock(el);
+      this.dragging = { el, startX: e.clientX, startY: e.clientY, moved: false };
+      App.select(el);
+    },
+    onMove(e) {
+      if (!this.dragging) return;
+      if (Math.abs(e.clientX - this.dragging.startX) + Math.abs(e.clientY - this.dragging.startY) < 5) return;
+      this.dragging.moved = true; this.dragging.el.style.opacity = '0.5';
+      const under = document.elementFromPoint(e.clientX, e.clientY);
+      if (under && under.parentElement && under !== this.dragging.el && !this.dragging.el.contains(under)) {
+        if (this.placeholder.parentElement) this.placeholder.remove();
+        under.parentElement.insertBefore(this.placeholder, under);
+      }
+    },
+    onUp() {
+      if (!this.dragging) return;
+      const d = this.dragging; this.dragging = null; d.el.style.opacity = '';
+      if (this.placeholder.parentElement) {
+        this.placeholder.parentElement.replaceChild(d.el, this.placeholder);
+        const parent = d.el.parentElement;
+        if (parent) {
+          const idx = Array.from(parent.children).indexOf(d.el);
+          StyleApplier.setRule(SelectorRegistry.selectorFor(d.el), { order: idx });
+        }
+      }
+    },
+    moveEl(el, delta, edge) {
+      const parent = el && el.parentElement; if (!parent) return;
+      const sibs = Array.from(parent.children).filter(c => c.nodeType === 1);
+      const i = sibs.indexOf(el);
+      const j = edge ? (delta < 0 ? 0 : sibs.length - 1) : i + delta;
+      if (j < 0 || j >= sibs.length || j === i) return;
+      parent.insertBefore(el, j > i ? sibs[j].nextSibling : sibs[j]);
+      StyleApplier.setRule(SelectorRegistry.selectorFor(el), { order: j });
+    },
+    onKey(e) {
+      if (!App.editing) return;
+      if (e.key === 'Escape') { App.toggleEditing(false); return; }
+      if (!App.selected || (e.target.closest && e.target.closest('#mes-editor-root'))) return;
+      if (['ArrowUp', 'ArrowDown'].includes(e.key)) {
+        this.moveEl(App.selected, e.key === 'ArrowUp' ? -1 : 1, e.ctrlKey);
+        e.preventDefault();
+      }
+    }
+  };
+  /* =========================================================
+   * 10. EDITOR UI — монохромное меню в стиле Apple
+   * ========================================================= */
+  const UI_CSS = `
+    #mes-editor-root {
+      position: fixed; top: 16px; right: 16px; z-index: 2147483646;
+      font: 13px/1.35 -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      -webkit-font-smoothing: antialiased; color: #fff; letter-spacing: -.01em; text-align: left;
+    }
+    #mes-editor-root *, #mes-editor-root *::before, #mes-editor-root *::after { box-sizing: border-box; font-family: inherit !important; letter-spacing: inherit; }
+    #mes-editor-root button { appearance: none; -webkit-appearance: none; font: inherit; color: inherit; margin: 0; text-transform: none; }
+    #mes-editor-root #mes-toggle {
+      display: flex; align-items: center; gap: 8px; margin-left: auto; cursor: pointer;
+      padding: 9px 16px; border-radius: 999px; border: 1px solid rgba(255,255,255,.14);
+      background: rgba(28,28,30,.72); color: #fff; font-weight: 600; font-size: 13px;
+      -webkit-backdrop-filter: blur(24px) saturate(180%); backdrop-filter: blur(24px) saturate(180%);
+      box-shadow: 0 6px 24px rgba(0,0,0,.35); transition: transform .25s cubic-bezier(.3,1.4,.5,1), background .2s;
+    }
+    #mes-editor-root #mes-toggle:hover { background: rgba(44,44,46,.85); }
+    #mes-editor-root #mes-toggle:active { transform: scale(.95); }
+    #mes-editor-root #mes-toggle.on { background: #fff; color: #000; border-color: #fff; }
+    #mes-editor-root .mes-panel {
+      display: none; width: 360px; max-height: calc(100vh - 90px); overflow-y: auto; overscroll-behavior: contain;
+      margin-top: 10px; padding: 14px 14px 16px; border-radius: 24px;
+      background: rgba(28,28,30,.78); border: 1px solid rgba(255,255,255,.12);
+      -webkit-backdrop-filter: blur(40px) saturate(180%); backdrop-filter: blur(40px) saturate(180%);
+      box-shadow: 0 24px 64px rgba(0,0,0,.55), inset 0 1px 0 rgba(255,255,255,.08);
+      transform-origin: top right;
+    }
+    #mes-editor-root .mes-panel.open { display: block; animation: mesPanelIn .32s cubic-bezier(.22,1,.36,1); }
+    @keyframes mesPanelIn { from { opacity: 0; transform: scale(.94) translateY(-8px); } to { opacity: 1; transform: none; } }
+    #mes-editor-root .mes-panel::-webkit-scrollbar { width: 8px; }
+    #mes-editor-root .mes-panel::-webkit-scrollbar-thumb { background: rgba(255,255,255,.22); border-radius: 4px; border: 2px solid transparent; background-clip: content-box; }
+    #mes-editor-root .mes-title { font-size: 20px; font-weight: 700; letter-spacing: -.02em; padding: 2px 4px 12px; display: flex; align-items: baseline; justify-content: space-between; }
+    #mes-editor-root .mes-title small { font-size: 11px; font-weight: 500; color: rgba(235,235,245,.4); }
+    #mes-editor-root .mes-seg { display: flex; gap: 2px; padding: 2px; background: rgba(118,118,128,.24); border-radius: 10px; }
+    #mes-editor-root .mes-seg button { flex: 1; border: 0; background: transparent; color: #fff; padding: 7px 4px; border-radius: 8px; font-size: 12.5px; font-weight: 500; cursor: pointer; white-space: nowrap; transition: background .2s, color .2s, box-shadow .2s; }
+    #mes-editor-root .mes-seg button.active { background: #fff; color: #000; box-shadow: 0 1px 4px rgba(0,0,0,.35); }
+    #mes-editor-root .mes-h { margin: 20px 0 7px 14px; font-size: 11.5px; font-weight: 500; text-transform: uppercase; letter-spacing: .04em; color: rgba(235,235,245,.5); }
+    #mes-editor-root .mes-f { margin: 7px 14px 0; font-size: 11.5px; color: rgba(235,235,245,.4); line-height: 1.4; }
+    #mes-editor-root .mes-g { background: rgba(255,255,255,.08); border-radius: 14px; overflow: hidden; }
+    #mes-editor-root .mes-r { position: relative; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 9px 14px; min-height: 44px; font-size: 14px; }
+    #mes-editor-root .mes-r + .mes-r::before { content: ''; position: absolute; top: 0; left: 14px; right: 0; height: 1px; background: rgba(255,255,255,.09); }
+    #mes-editor-root .mes-r.mes-col { flex-direction: column; align-items: stretch; justify-content: center; gap: 4px; }
+    #mes-editor-root .mes-top { display: flex; justify-content: space-between; align-items: center; }
+    #mes-editor-root .mes-v { color: rgba(235,235,245,.55); font-variant-numeric: tabular-nums; }
+    #mes-editor-root .mes-rc { flex: none; display: flex; align-items: center; justify-content: flex-end; }
+    #mes-editor-root .mes-info { padding: 12px 14px; border-radius: 14px; background: rgba(255,255,255,.08); font-size: 12px; color: rgba(235,235,245,.7); word-break: break-all; font-family: ui-monospace, SFMono-Regular, Menlo, monospace !important; }
+    #mes-editor-root .mes-in, #mes-editor-root .mes-sel {
+      background: rgba(118,118,128,.24); color: #fff; border: 0; border-radius: 8px; padding: 6px 10px; font-size: 14px; outline: none; width: 130px;
+      transition: box-shadow .2s, background .2s; margin: 0; height: auto;
+    }
+    #mes-editor-root .mes-in { text-align: right; }
+    #mes-editor-root .mes-in.w, #mes-editor-root .mes-col .mes-in { width: 100%; text-align: left; }
+    #mes-editor-root .mes-in::placeholder { color: rgba(235,235,245,.3); }
+    #mes-editor-root .mes-in:focus, #mes-editor-root .mes-sel:focus { box-shadow: 0 0 0 2px rgba(255,255,255,.55); }
+    #mes-editor-root .mes-sel {
+      -webkit-appearance: none; appearance: none; cursor: pointer; padding-right: 26px; width: auto; max-width: 170px;
+      background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='14' viewBox='0 0 10 14' fill='none' stroke='white' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'><path d='M2 5l3-3 3 3M2 9l3 3 3-3'/></svg>");
+      background-repeat: no-repeat; background-position: right 8px center;
+    }
+    #mes-editor-root .mes-sel option { background: #2c2c2e; color: #fff; }
+    #mes-editor-root input[type="color"] { -webkit-appearance: none; appearance: none; width: 44px; height: 26px; padding: 0; border: 1px solid rgba(255,255,255,.25); border-radius: 8px; background: none; cursor: pointer; overflow: hidden; }
+    #mes-editor-root input[type="color"]::-webkit-color-swatch-wrapper { padding: 0; }
+    #mes-editor-root input[type="color"]::-webkit-color-swatch { border: 0; border-radius: 7px; }
+    #mes-editor-root input[type="file"] { width: 100%; font-size: 12px; color: rgba(235,235,245,.6); }
+    #mes-editor-root input[type="file"]::file-selector-button { border: 0; margin-right: 10px; padding: 6px 12px; border-radius: 8px; background: #fff; color: #000; font-weight: 600; font-size: 12px; cursor: pointer; }
+    #mes-editor-root .mes-sw { position: relative; display: block; width: 46px; height: 28px; flex: none; }
+    #mes-editor-root .mes-sw input { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; opacity: 0; cursor: pointer; z-index: 1; }
+    #mes-editor-root .mes-sw i { position: absolute; inset: 0; border-radius: 14px; background: rgba(120,120,128,.4); transition: background .25s; }
+    #mes-editor-root .mes-sw i::after { content: ''; position: absolute; top: 2px; left: 2px; width: 24px; height: 24px; border-radius: 50%; background: #fff; box-shadow: 0 2px 5px rgba(0,0,0,.35); transition: transform .3s cubic-bezier(.3,1.4,.5,1), background .25s; }
+    #mes-editor-root .mes-sw input:checked + i { background: #fff; }
+    #mes-editor-root .mes-sw input:checked + i::after { transform: translateX(18px); background: #000; box-shadow: none; }
+    #mes-editor-root .mes-rng { -webkit-appearance: none; appearance: none; width: 100%; height: 4px; margin: 10px 0 8px; padding: 0; border-radius: 2px; background: rgba(255,255,255,.22); outline: none; border: 0; }
+    #mes-editor-root .mes-rng::-webkit-slider-thumb { -webkit-appearance: none; width: 24px; height: 24px; border-radius: 50%; background: #fff; box-shadow: 0 1px 6px rgba(0,0,0,.55); cursor: pointer; }
+    #mes-editor-root .mes-rng::-moz-range-thumb { width: 24px; height: 24px; border: 0; border-radius: 50%; background: #fff; box-shadow: 0 1px 6px rgba(0,0,0,.55); cursor: pointer; }
+    #mes-editor-root .mes-btn { display: block; width: 100%; margin-top: 14px; padding: 12px; border: 0; border-radius: 14px; background: rgba(255,255,255,.1); color: #fff; font-size: 14px; font-weight: 500; text-align: center; cursor: pointer; transition: background .2s, transform .15s; }
+    #mes-editor-root .mes-btn:hover { background: rgba(255,255,255,.16); }
+    #mes-editor-root .mes-btn:active { transform: scale(.98); }
+    #mes-editor-root .mes-btn.primary { background: #fff; color: #000; font-weight: 600; }
+    #mes-editor-root .mes-btn.primary:hover { background: rgba(255,255,255,.88); }
+    #mes-editor-root .mes-foot { display: flex; gap: 8px; margin-top: 18px; }
+    #mes-editor-root .mes-foot .mes-btn { margin-top: 0; font-size: 13px; padding: 11px 8px; }
+    #mes-editor-root .mes-foot .mes-btn.ghost { flex: none; width: auto; padding: 11px 14px; background: transparent; box-shadow: inset 0 0 0 1px rgba(255,255,255,.22); color: rgba(255,255,255,.8); }
+    /* структура блока */
+    #mes-editor-root .mes-parts { max-height: 250px; overflow-y: auto; overscroll-behavior: contain; }
+    #mes-editor-root .mes-part { position: relative; display: flex; align-items: center; gap: 8px; width: 100%; border: 0; background: transparent; color: #fff; text-align: left; padding: 8px 12px; cursor: pointer; font-size: 13px; }
+    #mes-editor-root .mes-part + .mes-part::before { content: ''; position: absolute; top: 0; left: 12px; right: 0; height: 1px; background: rgba(255,255,255,.07); }
+    #mes-editor-root .mes-part:hover { background: rgba(255,255,255,.08); }
+    #mes-editor-root .mes-part.on { background: #fff; color: #000; }
+    #mes-editor-root .mes-part b { flex: none; font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: .03em; padding: 2px 6px; border-radius: 6px; background: rgba(255,255,255,.14); }
+    #mes-editor-root .mes-part.on b { background: rgba(0,0,0,.12); }
+    #mes-editor-root .mes-part span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; opacity: .75; }
+    /* подсветка элементов страницы — ч/б */
+    .mes-editable-hint { outline: 2px dashed rgba(140,140,140,.95) !important; outline-offset: 2px; cursor: crosshair !important; }
+    .mes-selected { outline: 2px solid #fff !important; outline-offset: 2px; box-shadow: 0 0 0 5px #000 !important; z-index: 9999 !important; }
+    .mes-hl { outline: 2px solid #fff !important; outline-offset: 1px; box-shadow: 0 0 0 4px #000 !important; }
+    /* телефоны */
+    @media (max-width: 560px) {
+      #mes-editor-root { top: 8px; right: 8px; left: 8px; }
+      #mes-editor-root .mes-panel { width: 100%; max-height: calc(100vh - 70px); max-height: calc(100dvh - 70px); border-radius: 20px; }
+      #mes-editor-root .mes-in, #mes-editor-root .mes-sel { font-size: 16px; }
+    }
+  `;
+  const row = (label, ctl) => `<div class="mes-r"><span>${label}</span><div class="mes-rc">${ctl}</div></div>`;
+  const colRow = (label, ctl) => `<div class="mes-r mes-col"><span>${label}</span>${ctl}</div>`;
+  const sw = id => `<label class="mes-sw"><input type="checkbox" id="${id}"><i></i></label>`;
+  const rng = (label, id, min, max, step, valId) => `<div class="mes-r mes-col"><div class="mes-top"><span>${label}</span>${valId ? `<span class="mes-v" id="${valId}"></span>` : ''}</div><input class="mes-rng" type="range" id="${id}" min="${min}" max="${max}" step="${step}"></div>`;
+  const grp = (title, rows, foot) => `${title ? `<div class="mes-h">${title}</div>` : ''}<div class="mes-g">${rows.join('')}</div>${foot ? `<div class="mes-f">${foot}</div>` : ''}`;
+  const EditorUI = {
+    built: false,
+    mount() {
+      if (App.root) return;
+      const root = document.createElement('div');
+      root.id = 'mes-editor-root';
+      root.innerHTML = `
+        <button id="mes-toggle" type="button"><span>◐</span><span id="mes-toggle-t">Редактор</span></button>
+        <div id="mes-panel" class="mes-panel">
+          <div class="mes-title"><span>МЭШ Studio</span><small>v1.9${LITE ? ' · lite' : ''}</small></div>
+          <div class="mes-seg">
+            <button type="button" data-tab="layout" class="mes-tab">Раскладка</button>
+            <button type="button" data-tab="theme" class="mes-tab">Оформление</button>
+          </div>
+          <div id="mes-tab-layout"></div>
+          <div id="mes-tab-theme" style="display:none"></div>
+          <div class="mes-foot">
+            <button type="button" class="mes-btn" id="mes-export">Экспорт</button>
+            <button type="button" class="mes-btn" id="mes-import">Импорт</button>
+            <button type="button" class="mes-btn ghost" id="mes-reset-all">Сброс</button>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(root); App.root = root;
+      const style = document.createElement('style');
+      style.textContent = UI_CSS;
+      document.head.appendChild(style);
+      $('#mes-toggle', root).onclick = () => App.toggleEditing(!App.editing);
+      $$('.mes-tab', root).forEach(b => b.onclick = () => this.switchTab(b.dataset.tab));
+      $('#mes-export', root).onclick = () => this.exportConfig();
+      $('#mes-import', root).onclick = () => this.importConfig();
+      $('#mes-reset-all', root).onclick = () => {
+        if (confirm('Сбросить все настройки для МЭШ?')) {
+          App.state.layouts[App.pageKey] = []; App.state.themes[App.pageKey] = defaultTheme();
+          App.state.images[App.pageKey] = []; App.state.texts[App.pageKey] = [];
+          commitNow(); location.reload();
+        }
+      };
+      this.switchTab('layout');
+    },
+    // тяжёлые вкладки строим лениво — при первом открытии редактора (экономия памяти)
+    ensureBuilt() {
+      if (this.built) return;
+      this.built = true;
+      this.buildLayoutTab(); this.buildThemeTab();
+    },
+    switchTab(name) {
+      $$('.mes-tab', App.root).forEach(b => b.classList.toggle('active', b.dataset.tab === name));
+      $('#mes-tab-layout', App.root).style.display = name === 'layout' ? '' : 'none';
+      $('#mes-tab-theme', App.root).style.display = name === 'theme' ? '' : 'none';
+    },
+    buildLayoutTab() {
+      const c = $('#mes-tab-layout', App.root);
+      c.innerHTML = `
+        <div style="height:14px"></div>
+        <div class="mes-info" id="mes-selected-info">Элемент не выбран</div>
+        <div class="mes-seg" style="margin-top:10px">
+          <button type="button" id="mes-up">↑ Родитель</button>
+          <button type="button" id="mes-block">Весь блок</button>
+          <button type="button" id="mes-mv-up">▲</button>
+          <button type="button" id="mes-mv-dn">▼</button>
+        </div>
+        <div class="mes-f">«Весь блок» (или Alt + клик) выделяет список уроков целиком — его можно перетащить, скрыть или двигать ▲ ▼. Ниже блок разобран на части.</div>
+        ${grp('Видимость', [
+          row('Скрыть элемент', sw('mes-hide')),
+          row('Порядок', `<input class="mes-in" type="number" id="mes-order" min="0" placeholder="—">`),
+        ])}
+        <div id="mes-txt-wrap">${grp('Текст части', [colRow('Текст', `<input class="mes-in" type="text" id="mes-ptext" placeholder="Новый текст">`)], 'Заменяет такой же текст везде на странице (предмет, кабинет…). Пусто — вернуть оригинал.')}</div>
+        <div id="mes-img-wrap">${grp('Изображение', [
+          colRow('Заменить файлом', `<input type="file" id="mes-img-file" accept="image/*">`),
+          colRow('Или ссылка', `<input class="mes-in" type="text" id="mes-img-url" placeholder="https://…">`),
+        ], 'Большие фото автоматически уменьшаются, чтобы не занимать оперативную память.')}<button type="button" class="mes-btn" id="mes-img-reset">Вернуть оригинальную картинку</button></div>
+        ${grp('Внешний вид', [
+          row('Ширина', `<select class="mes-sel" id="mes-width"><option value="">Авто</option><option value="25%">25%</option><option value="50%">50%</option><option value="75%">75%</option><option value="100%">100%</option></select>`),
+          row('Цвет фона', `<input type="color" id="mes-bg">`),
+          row('Цвет текста', `<input type="color" id="mes-color">`),
+          row('Скругление, px', `<input class="mes-in" type="number" id="mes-radius" min="0" max="40" placeholder="—">`),
+        ], 'Стили применяются ко всем одинаковым элементам (например, ко всем названиям уроков).')}
+        <div class="mes-h">Структура блока</div>
+        <div class="mes-g mes-parts" id="mes-parts"></div>
+        <div class="mes-f">Нажмите на часть — выберется отдельно текст, время, кабинет, кнопка или картинка.</div>
+        <button type="button" class="mes-btn" id="mes-reset-el">Сбросить элемент</button>
+      `;
+      const self = this;
+      const selInfo = $('#mes-selected-info', c);
+      const upd = () => {
+        const el = App.selected;
+        const partsBox = $('#mes-parts', c);
+        if (!el) {
+          selInfo.textContent = 'Элемент не выбран. Кликните по элементу на странице.';
+          $('#mes-txt-wrap', c).style.display = 'none'; $('#mes-img-wrap', c).style.display = 'none';
+          partsBox.innerHTML = '<div class="mes-r"><span class="mes-v">Выберите элемент</span></div>';
+          return;
+        }
+        const sel = SelectorRegistry.selectorFor(el);
+        const rule = StyleApplier.findRule(sel) || {};
+        selInfo.textContent = sel;
+        $('#mes-hide', c).checked = !!rule.hidden;
+        $('#mes-order', c).value = rule.order ?? '';
+        $('#mes-width', c).value = rule.styles?.width || '';
+        $('#mes-bg', c).value = rule.styles?.backgroundColor || '#ffffff';
+        $('#mes-color', c).value = rule.styles?.color || '#000000';
+        $('#mes-radius', c).value = rule.styles?.borderRadius?.replace('px', '') || '';
+        // текст части
+        const part = TextEditor.part(el);
+        $('#mes-txt-wrap', c).style.display = part ? '' : 'none';
+        if (part) $('#mes-ptext', c).value = part.cur;
+        // изображение
+        const img = ImageReplacer.target(el);
+        $('#mes-img-wrap', c).style.display = img ? '' : 'none';
+        if (img) {
+          const e = ImageReplacer.entry(ImageReplacer.kindOf(img), ImageReplacer.keyOf(img));
+          $('#mes-img-url', c).value = e && !e.assetKey ? (e.url || '') : '';
+          $('#mes-img-reset', c).style.display = e ? '' : 'none';
+        }
+        // структура
+        if (!App.partsRoot || !App.partsRoot.isConnected || !App.partsRoot.contains(el)) App.partsRoot = el;
+        const parts = Blocks.parts(App.partsRoot);
+        self._parts = parts;
+        partsBox.innerHTML = parts.length
+          ? parts.map((p, i) => `<button type="button" class="mes-part${p.el === el ? ' on' : ''}" data-i="${i}" style="padding-left:${12 + p.depth * 12}px"><b>${esc(p.role)}</b><span>${esc(p.text)}</span></button>`).join('')
+          : '<div class="mes-r"><span class="mes-v">Нет вложенных частей</span></div>';
+      };
+      const set = (patch) => { if (!App.selected) return; StyleApplier.setRule(SelectorRegistry.selectorFor(App.selected), patch); };
+      const setStyle = (prop, val) => {
+        if (!App.selected) return;
+        const sel = SelectorRegistry.selectorFor(App.selected);
+        const rule = StyleApplier.findRule(sel) || {};
+        StyleApplier.setRule(sel, { styles: { ...(rule.styles || {}), [prop]: val } });
+      };
+      $('#mes-hide', c).onchange = e => set({ hidden: e.target.checked });
+      $('#mes-order', c).onchange = e => set({ order: e.target.value === '' ? null : +e.target.value });
+      $('#mes-width', c).onchange = e => setStyle('width', e.target.value || '');
+      $('#mes-bg', c).oninput = e => setStyle('backgroundColor', e.target.value);
+      $('#mes-color', c).oninput = e => setStyle('color', e.target.value);
+      $('#mes-radius', c).oninput = e => setStyle('borderRadius', e.target.value ? e.target.value + 'px' : '');
+      $('#mes-reset-el', c).onclick = () => { if (App.selected) { StyleApplier.resetElement(SelectorRegistry.selectorFor(App.selected)); upd(); } };
+      // навигация по блокам
+      $('#mes-up', c).onclick = () => {
+        const el = App.selected; if (!el || !el.parentElement || el.parentElement === document.body) return;
+        App.partsRoot = null; App.select(el.parentElement);
+      };
+      $('#mes-block', c).onclick = () => { const el = App.selected; if (!el) return; App.partsRoot = null; App.select(Blocks.findBlock(el)); };
+      $('#mes-mv-up', c).onclick = () => App.selected && DragDrop.moveEl(App.selected, -1);
+      $('#mes-mv-dn', c).onclick = () => App.selected && DragDrop.moveEl(App.selected, 1);
+      // список частей
+      const partsBox = $('#mes-parts', c);
+      let hl = null;
+      const unhl = () => { if (hl) { hl.classList.remove('mes-hl'); hl = null; } };
+      partsBox.onclick = e => {
+        const b = e.target.closest('.mes-part'); if (!b) return;
+        const p = self._parts && self._parts[+b.dataset.i]; if (!p) return;
+        unhl(); App.select(p.el, true);
+      };
+      partsBox.onmouseover = e => {
+        const b = e.target.closest('.mes-part'); if (!b) return;
+        const p = self._parts && self._parts[+b.dataset.i]; if (!p || p.el === hl) return;
+        unhl(); hl = p.el; hl.classList.add('mes-hl');
+      };
+      partsBox.onmouseleave = unhl;
+      // текст
+      $('#mes-ptext', c).onchange = e => {
+        const p = TextEditor.part(App.selected); if (!p) return;
+        TextEditor.set(p.from, e.target.value); upd();
+      };
+      // картинка
+      $('#mes-img-file', c).onchange = async e => {
+        const f = e.target.files[0]; const t = ImageReplacer.target(App.selected);
+        if (!f || !t) return;
+        await ImageReplacer.replaceWith(t, { file: f }); e.target.value = ''; upd();
+      };
+      $('#mes-img-url', c).onchange = async e => {
+        const v = e.target.value.trim(); const t = ImageReplacer.target(App.selected);
+        if (!t || !v) return;
+        await ImageReplacer.replaceWith(t, { url: v }); upd();
+      };
+      $('#mes-img-reset', c).onclick = () => { const t = ImageReplacer.target(App.selected); if (t) { ImageReplacer.restore(t); upd(); } };
+      this._refreshLayout = upd;
+      upd();
+    },
+    buildThemeTab() {
+      const c = $('#mes-tab-theme', App.root);
+      c.innerHTML = `
+        <div style="height:6px"></div>
+        <div class="mes-h">Фон</div>
+        <div class="mes-g">${row('Тип', `<select class="mes-sel" id="th-bg-type"><option value="none">Нет</option><option value="color">Цвет</option><option value="gradient">Градиент</option><option value="image">Картинка</option><option value="video">Видео (URL)</option></select>`)}<div id="th-bg-fields"></div></div>
+        ${grp('Тема и стекло', [
+          row('Как в системе', sw('th-auto-dark')),
+          row('Тёмная тема', sw('th-dark')),
+          row('Эффект стекла', sw('th-glass')),
+          rng('Непрозрачность стекла', 'th-glass-op', 0.05, 0.95, 0.05, 'th-glass-op-v'),
+          rng('Размытие стекла', 'th-glass-blur', 0, 30, 1, 'th-glass-blur-v'),
+        ], 'Стекло применяется к карточкам, урокам и панелям сразу — без белой вспышки при листании дней и наведении.')}
+        <div class="mes-h">Анимация появления</div>
+        <div class="mes-seg" id="th-anim-seg">
+          <button type="button" data-v="none">Нет</button>
+          <button type="button" data-v="fade">Плавно</button>
+          <button type="button" data-v="slide">Справа ←</button>
+          <button type="button" data-v="zoom">Масштаб</button>
+        </div>
+        <div class="mes-f">Работает при загрузке и при листании: новые карточки и уроки появляются по очереди. Включена только одна анимация.${LITE ? ' Режим экономии: анимации облегчены.' : ''}</div>
+        ${grp('Интерфейс', [row('Скругление кнопок, px', `<input class="mes-in" type="number" id="th-radius" min="0" max="40" placeholder="—">`)])}
+        ${grp('Музыка и звук', [
+          row('Музыка', sw('th-music-on')),
+          colRow('Файл', `<input type="file" id="th-music-file" accept="audio/*">`),
+          rng('Громкость музыки', 'th-music-vol', 0, 1, 0.05),
+          row('Звук нажатия', `<select class="mes-sel" id="th-click"><option value="none">Нет</option><option value="click">Клик</option><option value="pop">Поп</option><option value="mechanical">Механический</option></select>`),
+          rng('Громкость клика', 'th-click-vol', 0, 1, 0.05),
+        ])}
+        ${grp('Эффекты', [
+          row('Снег', sw('th-snow')),
+          row('Дождь', sw('th-rain')),
+          row('Звёзды', sw('th-stars')),
+          rng('Интенсивность', 'th-intensity', 0.2, 3, 0.1),
+          row('Снизить нагрузку', sw('th-low')),
+        ])}
+        ${grp('Шрифт', [
+          colRow('Файл шрифта с компьютера', `<input type="file" id="th-font-file" accept=".ttf,.otf,.woff,.woff2,font/*">`),
+          row('Выбран', `<span class="mes-v" id="th-font-name">—</span>`),
+          colRow('Google Fonts / установленный', `<input class="mes-in" type="text" id="th-font-family" placeholder="например, Rubik">`),
+          row('Размер, px (0 — авто)', `<input class="mes-in" type="number" id="th-font-size" min="0" placeholder="0">`),
+        ], 'Файл .ttf / .otf / .woff / .woff2 хранится в браузере и не зависит от интернета. Файл главнее названия.')}
+        <button type="button" class="mes-btn" id="th-font-clear">Убрать файл шрифта</button>
+        <button type="button" class="mes-btn" id="th-rescan">Пересканировать страницу</button>
+        ${LITE ? '<div class="mes-f">Режим экономии памяти включён автоматически (телефон/слабое устройство): облегчены размытие, фон, эффекты и сканирование страницы. Внешний вид тот же.</div>' : ''}
+      `;
+      const t = getTheme();
+      const refreshBgFields = () => {
+        const type = $('#th-bg-type', c).value; const f = $('#th-bg-fields', c); f.innerHTML = '';
+        if (type === 'color') {
+          f.innerHTML = row('Цвет', `<input type="color" id="th-bg-color" value="${t.background.color}">`);
+          $('#th-bg-color', c).oninput = e => { t.background.type = 'color'; t.background.color = e.target.value; commit(); ThemeEngine.apply(); };
+        } else if (type === 'gradient') {
+          f.innerHTML = row('Цвет 1', `<input type="color" id="th-g1" value="${t.background.grad[0]}">`) + row('Цвет 2', `<input type="color" id="th-g2" value="${t.background.grad[1]}">`) + row('Угол', `<input class="mes-in" type="number" id="th-ang" value="${t.background.angle}">`);
+          ['th-g1', 'th-g2', 'th-ang'].forEach(id => $('#' + id, c).oninput = () => { t.background.type = 'gradient'; t.background.grad = [$('#th-g1', c).value, $('#th-g2', c).value]; t.background.angle = +$('#th-ang', c).value; commit(); ThemeEngine.apply(); });
+        } else if (type === 'image') {
+          f.innerHTML = colRow('Файл', `<input type="file" id="th-bg-file" accept="image/*">`) + colRow('URL картинки', `<input class="mes-in" type="text" id="th-bg-url" value="${esc(t.background.url || '')}" placeholder="https://…">`) + row('Режим', `<select class="mes-sel" id="th-bg-fit"><option>cover</option><option>contain</option><option>repeat</option></select>`);
+          $('#th-bg-fit', c).value = t.background.fit || 'cover';
+          $('#th-bg-file', c).onchange = async e => {
+            const file = e.target.files[0]; if (!file) return;
+            const blob = await shrinkImage(file, IMG_MAX);
+            const key = 'bg_' + uid(); await AssetStore.put(key, blob);
+            const old = t.background.assetKey;
+            t.background = { ...t.background, type: 'image', assetKey: key, url: '' };
+            commit(); await ThemeEngine.apply(); if (old) AssetStore.drop(old);
+          };
+          $('#th-bg-url', c).oninput = e => { t.background = { ...t.background, type: 'image', url: e.target.value, assetKey: null }; commit(); ThemeEngine.apply(); };
+          $('#th-bg-fit', c).onchange = e => { t.background.fit = e.target.value; commit(); ThemeEngine.apply(); };
+        } else if (type === 'video') {
+          f.innerHTML = colRow('URL mp4 / webm', `<input class="mes-in" type="text" id="th-bg-vurl" value="${esc(t.background.url || '')}" placeholder="https://…">`);
+          $('#th-bg-vurl', c).oninput = e => { t.background = { ...t.background, type: 'video', url: e.target.value }; commit(); ThemeEngine.apply(); };
+        }
+      };
+      $('#th-bg-type', c).value = t.background.type;
+      $('#th-bg-type', c).onchange = e => { t.background.type = e.target.value; commit(); refreshBgFields(); ThemeEngine.apply(); };
+      refreshBgFields();
+      $('#th-music-on', c).checked = t.music.enabled;
+      $('#th-music-on', c).onchange = e => { t.music.enabled = e.target.checked; commit(); ThemeEngine.apply(); };
+      $('#th-music-file', c).onchange = async e => {
+        const f = e.target.files[0]; if (!f) return;
+        const key = 'music_' + uid(); await AssetStore.put(key, f);
+        const old = t.music.assetKey; t.music.assetKey = key; t.music.enabled = true; $('#th-music-on', c).checked = true;
+        commit(); await ThemeEngine.apply(); if (old) AssetStore.drop(old);
+      };
+      $('#th-music-vol', c).value = t.music.volume;
+      $('#th-music-vol', c).oninput = e => { t.music.volume = +e.target.value; commit(); ThemeEngine.apply(); };
+      $('#th-click', c).value = t.clickSound.preset;
+      $('#th-click', c).onchange = e => { t.clickSound.preset = e.target.value; t.clickSound.enabled = e.target.value !== 'none'; commit(); ThemeEngine.apply(); };
+      $('#th-click-vol', c).value = t.clickSound.volume;
+      $('#th-click-vol', c).oninput = e => { t.clickSound.volume = +e.target.value; commit(); ThemeEngine.apply(); };
+      $('#th-snow', c).checked = t.effects.snow; $('#th-rain', c).checked = t.effects.rain; $('#th-stars', c).checked = t.effects.stars;
+      const effUpd = () => { t.effects.snow = $('#th-snow', c).checked; t.effects.rain = $('#th-rain', c).checked; t.effects.stars = $('#th-stars', c).checked; t.effects.intensity = +$('#th-intensity', c).value; t.effects.lowPower = $('#th-low', c).checked; commit(); ThemeEngine.apply(); };
+      ['th-snow', 'th-rain', 'th-stars', 'th-intensity', 'th-low'].forEach(id => $('#' + id, c).onchange = effUpd);
+      $('#th-intensity', c).value = t.effects.intensity; $('#th-low', c).checked = t.effects.lowPower;
+      // шрифты
+      const fontName = $('#th-font-name', c);
+      const showFont = () => { fontName.textContent = t.fonts.fileKey ? (t.fonts.fileName || 'файл') : '—'; $('#th-font-clear', c).style.display = t.fonts.fileKey ? '' : 'none'; };
+      showFont();
+      $('#th-font-file', c).onchange = async e => {
+        const f = e.target.files[0]; if (!f) return;
+        const key = 'font_' + uid(); await AssetStore.put(key, f);
+        const old = t.fonts.fileKey;
+        t.fonts.fileKey = key; t.fonts.fileName = f.name;
+        commit(); showFont(); await ThemeEngine.apply(); if (old) AssetStore.drop(old);
+      };
+      $('#th-font-clear', c).onclick = async () => {
+        const old = t.fonts.fileKey; t.fonts.fileKey = null; t.fonts.fileName = '';
+        commit(); showFont(); await ThemeEngine.apply(); if (old) AssetStore.drop(old);
+      };
+      $('#th-font-family', c).value = t.fonts.family; $('#th-font-size', c).value = t.fonts.size || '';
+      const fontUpd = () => { t.fonts.family = $('#th-font-family', c).value.trim(); t.fonts.size = +$('#th-font-size', c).value || 0; commit(); ThemeEngine.apply(); };
+      ['th-font-family', 'th-font-size'].forEach(id => $('#' + id, c).onchange = fontUpd);
+      $('#th-auto-dark', c).checked = t.misc.autoDark;
+      $('#th-auto-dark', c).onchange = e => { t.misc.autoDark = e.target.checked; commit(); ThemeEngine.apply(); };
+      $('#th-dark', c).checked = t.misc.dark;
+      $('#th-dark', c).onchange = e => { t.misc.dark = e.target.checked; commit(); ThemeEngine.apply(); };
+      $('#th-glass', c).checked = t.misc.glass;
+      $('#th-glass', c).onchange = e => { t.misc.glass = e.target.checked; commit(); ThemeEngine.apply(); };
+      const opV = $('#th-glass-op-v', c), blV = $('#th-glass-blur-v', c);
+      $('#th-glass-op', c).value = t.misc.glassOpacity; opV.textContent = Math.round(t.misc.glassOpacity * 100) + '%';
+      $('#th-glass-op', c).oninput = e => { t.misc.glassOpacity = +e.target.value; opV.textContent = Math.round(t.misc.glassOpacity * 100) + '%'; commit(); ThemeEngine.applyMisc(t.misc); };
+      $('#th-glass-blur', c).value = t.misc.glassBlur; blV.textContent = t.misc.glassBlur + 'px';
+      $('#th-glass-blur', c).oninput = e => { t.misc.glassBlur = +e.target.value; blV.textContent = t.misc.glassBlur + 'px'; commit(); ThemeEngine.applyMisc(t.misc); };
+      const seg = $('#th-anim-seg', c);
+      const markAnim = () => $$('button', seg).forEach(b => b.classList.toggle('active', b.dataset.v === t.misc.anim));
+      $$('button', seg).forEach(b => b.onclick = () => { t.misc.anim = b.dataset.v; commit(); markAnim(); ThemeEngine.applyMisc(t.misc); });
+      markAnim();
+      $('#th-radius', c).value = t.misc.radius ?? '';
+      $('#th-radius', c).oninput = e => { t.misc.radius = e.target.value === '' ? null : +e.target.value; commit(); ThemeEngine.applyMisc(t.misc); };
+      $('#th-rescan', c).onclick = () => { Surfaces.reset(); ThemeEngine.apply(); };
+    },
+    exportConfig() {
+      const blob = new Blob([JSON.stringify({ state: App.state }, null, 2)], { type: 'application/json' });
+      const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `mes-config-${Date.now()}.json`; a.click();
+      setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+    },
+    importConfig() {
+      const inp = document.createElement('input'); inp.type = 'file'; inp.accept = 'application/json';
+      inp.onchange = () => { const f = inp.files[0]; if (!f) return; const r = new FileReader(); r.onload = () => {
+        try { const data = JSON.parse(r.result); if (!data.state) throw new Error('bad format'); App.state = Object.assign(Storage.defaultState(), data.state); commitNow(); location.reload(); }
+        catch (e) { alert('Ошибка импорта: ' + e.message); }
+      }; r.readAsText(f); };
+      inp.click();
+    },
+  };
+  /* =========================================================
+   * 11. APP METHODS
+   * ========================================================= */
+  App.select = function (el, keepRoot) {
+    if (App.selected) App.selected.classList.remove('mes-selected');
+    if (!keepRoot) App.partsRoot = null;
+    App.selected = el;
+    if (el) { el.classList.add('mes-selected'); EditorUI._refreshLayout && EditorUI._refreshLayout(); }
+  };
+  App.toggleEditing = function (on) {
+    App.editing = on;
+    const btn = $('#mes-toggle', App.root); const panel = $('#mes-panel', App.root);
+    if (btn) { btn.classList.toggle('on', on); $('#mes-toggle-t', btn).textContent = on ? 'Готово' : 'Редактор'; }
+    if (on) EditorUI.ensureBuilt();
+    if (panel) panel.classList.toggle('open', on);
+    if (on) {
+      document.body.classList.add('mes-editing-mode');
+      $$(CAND_SEL).forEach(el => { if (!el.closest('#mes-editor-root') && SelectorRegistry.isEditable(el)) el.classList.add('mes-editable-hint'); });
+      document.addEventListener('click', blockClick, true);
+    } else {
+      document.body.classList.remove('mes-editing-mode');
+      $$('.mes-editable-hint').forEach(el => el.classList.remove('mes-editable-hint'));
+      $$('.mes-selected, .mes-hl').forEach(el => el.classList.remove('mes-selected', 'mes-hl'));
+      document.removeEventListener('click', blockClick, true);
+      App.selected = null; App.partsRoot = null; commitNow();
+    }
+  };
+  function blockClick(e) {
+    if (!App.editing) return;
+    if (e.target.closest('#mes-editor-root')) return;
+    e.preventDefault(); e.stopPropagation();
+  }
+  /* =========================================================
+   * 12. ROUTER WATCHER & BOOTSTRAP
+   * ========================================================= */
+  function applyContent() {
+    StyleApplier.applyAll();
+    ImageReplacer.applyAll().catch(() => {});
+    TextEditor.applyAll();
+  }
+  function boot() {
+    log('Запуск v1.9' + (LITE ? ' (режим экономии)' : ''));
+    EditorUI.mount();
+    DragDrop.init();
+    ThemeEngine.apply().catch(e => log('theme error', e));
+    // первые секунды догоняем динамически дорисованные блоки; на телефоне — реже
+    let tries = 0;
+    const maxTries = LITE ? 6 : 12, every = LITE ? 1000 : 500;
+    const light = () => {
+      tries++;
+      try { applyContent(); Surfaces.scan(); } catch (e) { log('apply error', e); }
+      if (tries < maxTries) setTimeout(light, every);
+    };
+    setTimeout(light, 500);
+    const onMutate = debounce(() => { try { applyContent(); Surfaces.scan(); } catch (e) {} }, LITE ? 900 : 350);
+    const onImg = debounce(() => { try { ImageReplacer.applyAll().catch(() => {}); } catch (e) {} }, 150);
+    const onRoute = debounce(() => { try { applyContent(); ThemeEngine.apply(); } catch (e) {} }, 300);
+    const wrap = (name) => { const orig = history[name]; history[name] = function (...a) { const r = orig.apply(this, a); onRoute(); return r; }; };
+    wrap('pushState'); wrap('replaceState');
+    window.addEventListener('popstate', onRoute);
+    // hover / focus / active: до отрисовки кадра помечаем элементы, которые сайт делает белыми при наведении
+    const hv = (e) => { if (Surfaces.needSurf()) Surfaces.hoverSchedule(e.target); };
+    const hopt = { capture: true, passive: true };
+    document.addEventListener('pointerover', hv, hopt);
+    document.addEventListener('pointerdown', hv, hopt);
+    document.addEventListener('focusin', hv, hopt);
+    document.addEventListener('pointerout', (e) => { if (!e.relatedTarget && Surfaces.needSurf()) Surfaces.hoverSchedule(null); }, hopt);
+    const inEditor = (n) => { const el = n && (n.nodeType === 1 ? n : n.parentElement); return !!(el && el.closest && el.closest('#mes-editor-root')); };
+    // Колбэк MutationObserver выполняется ДО отрисовки кадра:
+    // новые карточки получают стекло/тёмный фон/анимацию мгновенно → никакого белого мерцания.
+    new MutationObserver((muts) => {
+      const surf = Surfaces.needSurf();
+      const nodes = [], added = [];
+      let external = false, imgSrc = false;
+      for (const m of muts) {
+        if (m.type === 'childList') {
+          if (inEditor(m.target)) continue;
+          external = true;
+          m.addedNodes.forEach(n => { if (n.nodeType === 1) { added.push(n); if (surf) nodes.push(n); } });
+        } else if (m.type === 'attributes') {
+          const el = m.target;
+          if (!el || el.nodeType !== 1 || inEditor(el)) continue;
+          if (m.attributeName === 'src') { if (el.tagName === 'IMG') imgSrc = true; continue; }
+          if (!surf) continue;
+          if (normCls(m.oldValue) === normCls(el.getAttribute('class'))) continue;
+          nodes.push(el);
+        }
+      }
+      if (nodes.length) { try { Surfaces.fast(nodes); } catch (e) {} }
+      if (added.length) { try { Anim.batch = performance.now(); Anim.animate(added); } catch (e) {} }
+      if (external) onMutate();
+      if (imgSrc) onImg();
+    }).observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['class', 'src'], attributeOldValue: true });
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
+  else boot();
+})();
+</script>
+
+<script>
+(function () {
+  const src = document.getElementById('script-src').textContent.replace(/^\r?\n/, '');
+  const codeView = document.getElementById('codeView');
+  const codebox = document.getElementById('codebox');
+  const toggleBtn = document.getElementById('btnToggle');
+  const toast = document.getElementById('toast');
+  codeView.textContent = src;
+
+  let toastT;
+  function showToast(msg) {
+    toast.textContent = msg; toast.classList.add('show');
+    clearTimeout(toastT); toastT = setTimeout(() => toast.classList.remove('show'), 2200);
+  }
+
+  async function copyText(text) {
+    try { await navigator.clipboard.writeText(text); return true; }
+    catch (e) {
+      const ta = document.createElement('textarea');
+      ta.value = text; ta.setAttribute('readonly', ''); ta.style.position = 'fixed'; ta.style.opacity = '0';
+      document.body.appendChild(ta); ta.select();
+      let ok = false; try { ok = document.execCommand('copy'); } catch (_) {}
+      ta.remove(); return ok;
+    }
+  }
+
+  async function onCopy(btn) {
+    const ok = await copyText(src);
+    if (ok) {
+      showToast('Код скопирован — вставьте его в Tampermonkey');
+      const old = btn.textContent; btn.classList.add('done'); btn.textContent = 'Скопировано ✓';
+      setTimeout(() => { btn.classList.remove('done'); btn.textContent = old; }, 1800);
+    } else showToast('Не удалось скопировать — выделите код вручную');
+  }
+
+  function download() {
+    const blob = new Blob([src], { type: 'text/javascript;charset=utf-8' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'mes-layout-editor.user.js';
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+    showToast('Файл скачан — импортируйте его в Tampermonkey');
+  }
+
+  document.getElementById('btnCopy').onclick = e => onCopy(e.currentTarget);
+  document.getElementById('btnCopyTop').onclick = e => onCopy(e.currentTarget);
+  document.getElementById('btnDownload').onclick = download;
+  document.getElementById('btnDownloadTop').onclick = download;
+
+  toggleBtn.onclick = () => {
+    const collapsed = codebox.classList.toggle('collapsed');
+    toggleBtn.textContent = collapsed ? 'Показать весь код' : 'Свернуть код';
+    if (!collapsed) codebox.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  };
+})();
+</script>
+</body>
+</html>
