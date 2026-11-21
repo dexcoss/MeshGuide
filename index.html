@@ -6,318 +6,396 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>МЭШ Layout Editor + Theme Studio PRO — установка через Tampermonkey</title>
 <style>
-  :root{
-    --bg:#0c0e12; --card:#15181f; --card2:#1b1f28; --line:#262b36;
-    --txt:#e8eaf0; --mut:#9aa3b2; --acc:#ffffff; --accTxt:#000; --ok:#3ddc97; --warn:#ffb547; --err:#ff6b6b;
+  :root {
+    --bg: #f5f6f8;
+    --card: #ffffff;
+    --text: #1d1f24;
+    --muted: #6b7280;
+    --line: #e4e7ec;
+    --accent: #2563eb;
+    --accent-h: #1d4ed8;
+    --code-bg: #0f1115;
+    --code-text: #e6e9ef;
+    --radius: 14px;
   }
-  @media (prefers-color-scheme: light){
-    :root{
-      --bg:#f3f4f7; --card:#ffffff; --card2:#f7f8fa; --line:#e1e4eb;
-      --txt:#14161b; --mut:#5b6474; --acc:#000000; --accTxt:#ffffff; --ok:#12865a; --warn:#b8741a; --err:#c2353a;
-    }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; scroll-padding-top: 130px; }
+  body {
+    margin: 0;
+    font: 16px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    color: var(--text);
+    background: var(--bg);
   }
-  *{box-sizing:border-box}
-  html{scroll-behavior:smooth}
-  body{
-    margin:0; background:var(--bg); color:var(--txt);
-    font:16px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
-    -webkit-font-smoothing:antialiased;
-  }
-  a{color:inherit}
-  code,pre{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
-  .wrap{max-width:900px;margin:0 auto;padding:0 20px}
+  .wrap { max-width: 980px; margin: 0 auto; padding: 0 20px; }
 
   /* ---------- шапка ---------- */
-  header.hero{padding:56px 0 36px;border-bottom:1px solid var(--line);background:radial-gradient(1200px 400px at 50% -10%,rgba(127,127,255,.18),transparent 60%)}
-  .badge{display:inline-block;font-size:12px;font-weight:600;letter-spacing:.03em;padding:5px 11px;border-radius:999px;border:1px solid var(--line);color:var(--mut);margin:0 6px 8px 0}
-  h1{font-size:clamp(26px,5vw,38px);line-height:1.15;margin:14px 0 10px;letter-spacing:-.02em}
-  .lead{color:var(--mut);font-size:17px;margin:0 0 22px;max-width:680px}
-  .btns{display:flex;flex-wrap:wrap;gap:10px}
-  .btn{
-    display:inline-flex;align-items:center;justify-content:center;gap:8px;
-    border:0;border-radius:12px;padding:12px 18px;font:inherit;font-weight:600;font-size:15px;
-    text-decoration:none;cursor:pointer;background:var(--card2);color:var(--txt);
-    box-shadow:inset 0 0 0 1px var(--line);transition:transform .15s,background .2s,opacity .2s;
+  .top {
+    background: linear-gradient(135deg, #1e3a8a, #2563eb);
+    color: #fff;
+    padding: 28px 0 22px;
   }
-  .btn:hover{background:var(--card)}
-  .btn:active{transform:scale(.97)}
-  .btn.primary{background:var(--acc);color:var(--accTxt);box-shadow:none}
-  .btn.primary:hover{opacity:.9}
-  .btn.done{background:var(--ok);color:#fff;box-shadow:none}
+  .top .wrap { display: flex; justify-content: space-between; align-items: flex-end; gap: 20px; flex-wrap: wrap; }
+  .top h1 { margin: 0; font-size: 26px; line-height: 1.2; letter-spacing: -.01em; }
+  .top .sub { margin: 4px 0 12px; opacity: .85; font-size: 15px; }
+  .badges { display: flex; gap: 8px; flex-wrap: wrap; }
+  .badges span {
+    font-size: 12px; font-weight: 600; padding: 4px 10px; border-radius: 999px;
+    background: rgba(255,255,255,.18); border: 1px solid rgba(255,255,255,.25);
+  }
+  .actions { display: flex; gap: 10px; flex-wrap: wrap; }
+
+  /* ---------- кнопки ---------- */
+  .btn {
+    appearance: none; border: 1px solid transparent; border-radius: 10px;
+    padding: 10px 16px; font: inherit; font-size: 14px; font-weight: 600;
+    cursor: pointer; background: #fff; color: var(--text);
+    transition: background .15s, transform .1s, color .15s;
+    white-space: nowrap;
+  }
+  .btn:hover { background: #eef2ff; }
+  .btn:active { transform: scale(.98); }
+  .btn.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .btn.primary:hover { background: var(--accent-h); }
+  .btn.ghost { background: transparent; color: #fff; border-color: rgba(255,255,255,.5); }
+  .btn.ghost:hover { background: rgba(255,255,255,.12); }
+  .top .btn:not(.primary):not(.ghost) { background: rgba(255,255,255,.95); color: #1e3a8a; }
+  .btn.small { padding: 7px 12px; font-size: 13px; }
+  .btn.done { background: #16a34a; color: #fff; border-color: #16a34a; }
 
   /* ---------- навигация ---------- */
-  nav.toc{position:sticky;top:0;z-index:10;background:color-mix(in srgb,var(--bg) 85%,transparent);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-bottom:1px solid var(--line)}
-  nav.toc .wrap{display:flex;gap:4px;overflow-x:auto;padding-top:10px;padding-bottom:10px;scrollbar-width:none}
-  nav.toc a{white-space:nowrap;font-size:14px;color:var(--mut);text-decoration:none;padding:6px 12px;border-radius:999px}
-  nav.toc a:hover{color:var(--txt);background:var(--card)}
+  .toc {
+    position: sticky; top: 0; z-index: 10;
+    background: rgba(255,255,255,.92); backdrop-filter: blur(8px);
+    border-bottom: 1px solid var(--line);
+  }
+  .toc ul {
+    list-style: none; margin: 0; padding: 0;
+    display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none;
+  }
+  .toc ul::-webkit-scrollbar { display: none; }
+  .toc a {
+    display: block; padding: 12px 14px; font-size: 14px; font-weight: 500;
+    color: var(--muted); text-decoration: none; white-space: nowrap;
+    border-bottom: 2px solid transparent;
+  }
+  .toc a:hover { color: var(--text); }
+  .toc a.active { color: var(--accent); border-bottom-color: var(--accent); }
 
   /* ---------- секции ---------- */
-  section{padding:40px 0;border-bottom:1px solid var(--line)}
-  section:last-of-type{border-bottom:0}
-  h2{font-size:24px;letter-spacing:-.015em;margin:0 0 6px}
-  h3{font-size:17px;margin:22px 0 8px}
-  .sub{color:var(--mut);margin:0 0 22px}
-  p{margin:0 0 12px}
-  .card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:18px 20px;margin-bottom:14px}
-  .note{border-left:3px solid var(--warn);background:var(--card2);padding:12px 16px;border-radius:10px;color:var(--mut);font-size:14.5px;margin:14px 0}
-  .note.ok{border-color:var(--ok)}
-  .note.err{border-color:var(--err)}
-  .note b{color:var(--txt)}
-
-  /* ---------- шаги ---------- */
-  .steps{list-style:none;counter-reset:s;padding:0;margin:0}
-  .steps li{counter-increment:s;position:relative;padding:16px 16px 16px 60px;background:var(--card);border:1px solid var(--line);border-radius:16px;margin-bottom:12px}
-  .steps li::before{
-    content:counter(s);position:absolute;left:16px;top:16px;width:30px;height:30px;border-radius:50%;
-    background:var(--acc);color:var(--accTxt);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;
+  main { padding: 8px 0 40px; }
+  section {
+    background: var(--card); border: 1px solid var(--line); border-radius: var(--radius);
+    padding: 24px 26px; margin: 18px 0;
   }
-  .steps li h3{margin:0 0 4px;font-size:16px}
-  .steps li p{margin:0;color:var(--mut);font-size:15px}
-  .steps li p + p{margin-top:8px}
-  kbd{display:inline-block;font:12.5px ui-monospace,Menlo,Consolas,monospace;padding:2px 7px;border-radius:6px;border:1px solid var(--line);border-bottom-width:2px;background:var(--card2);color:var(--txt)}
+  h2 { font-size: 21px; margin: 0 0 14px; letter-spacing: -.01em; }
+  h3 { font-size: 17px; margin: 22px 0 8px; }
+  p { margin: 8px 0; }
+  ul, ol { padding-left: 22px; margin: 8px 0; }
+  li { margin: 4px 0; }
+  a { color: var(--accent); }
+  code, kbd {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 13.5px;
+  }
+  code { background: #eef2f7; padding: 1px 6px; border-radius: 6px; }
+  kbd {
+    display: inline-block; background: #f3f4f6; border: 1px solid #d1d5db;
+    border-bottom-width: 2px; border-radius: 6px; padding: 0 6px; line-height: 1.5;
+  }
+  .muted { color: var(--muted); font-size: 14px; }
 
-  /* ---------- таблица браузеров ---------- */
-  .browsers{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px}
-  .browsers a{display:block;text-decoration:none;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 16px;transition:transform .15s,border-color .2s}
-  .browsers a:hover{transform:translateY(-2px);border-color:var(--mut)}
-  .browsers b{display:block;font-size:15px}
-  .browsers span{color:var(--mut);font-size:13px}
+  .note {
+    border-radius: 12px; padding: 12px 16px; margin: 14px 0; font-size: 14.5px;
+    background: #eff6ff; border: 1px solid #bfdbfe; color: #1e3a8a;
+  }
+  .note.warn { background: #fffbeb; border-color: #fde68a; color: #78350f; }
+  .note strong { font-weight: 700; }
 
-  /* ---------- код ---------- */
-  .codebar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;margin-bottom:12px}
-  .codebar .meta{color:var(--mut);font-size:13.5px}
-  .codebox{position:relative;background:#0a0b0e;color:#dfe3ea;border:1px solid var(--line);border-radius:16px;overflow:hidden}
-  .codebox pre{margin:0;padding:16px 18px;max-height:460px;overflow:auto;font-size:12.5px;line-height:1.5;white-space:pre;tab-size:2}
-  .codebox.collapsed pre{max-height:180px;overflow:hidden;-webkit-mask-image:linear-gradient(#000 55%,transparent);mask-image:linear-gradient(#000 55%,transparent)}
-  .toggle-code{margin-top:10px}
+  .steps { counter-reset: st; list-style: none; padding: 0; }
+  .steps li {
+    counter-increment: st; position: relative; padding: 4px 0 4px 44px; margin: 0 0 14px;
+  }
+  .steps li::before {
+    content: counter(st); position: absolute; left: 0; top: 0;
+    width: 30px; height: 30px; border-radius: 50%;
+    background: var(--accent); color: #fff; font-weight: 700; font-size: 14px;
+    display: flex; align-items: center; justify-content: center;
+  }
 
-  /* ---------- блоки «как пользоваться» ---------- */
-  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-  @media (max-width:640px){.grid2{grid-template-columns:1fr}}
-  .kv{display:flex;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid var(--line);font-size:15px}
-  .kv:last-child{border-bottom:0}
-  .kv span:last-child{color:var(--mut);text-align:right}
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 12px; margin-top: 12px; }
+  .store {
+    border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px;
+    text-decoration: none; color: var(--text); display: block; background: #fff;
+    transition: border-color .15s, box-shadow .15s;
+  }
+  .store:hover { border-color: var(--accent); box-shadow: 0 4px 16px rgba(37,99,235,.12); }
+  .store b { display: block; font-size: 15px; margin-bottom: 2px; }
+  .store span { font-size: 13px; color: var(--muted); }
+
+  /* ---------- блок кода ---------- */
+  .codebar { display: flex; gap: 10px; flex-wrap: wrap; margin: 10px 0 12px; }
+  .codebox {
+    position: relative; background: var(--code-bg); border-radius: 12px; overflow: hidden;
+  }
+  .codebox pre {
+    margin: 0; padding: 16px 18px; overflow: auto;
+    color: var(--code-text); font-size: 12.5px; line-height: 1.5;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    white-space: pre; tab-size: 2;
+  }
+  .codebox.collapsed { max-height: 180px; }
+  .codebox.collapsed::after {
+    content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 90px; pointer-events: none;
+    background: linear-gradient(rgba(15,17,21,0), var(--code-bg));
+  }
+  .codebox.collapsed pre { overflow: hidden; }
 
   /* ---------- FAQ ---------- */
-  details{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 18px;margin-bottom:10px}
-  details summary{cursor:pointer;font-weight:600;list-style:none;display:flex;justify-content:space-between;gap:12px}
-  details summary::-webkit-details-marker{display:none}
-  details summary::after{content:'+';color:var(--mut);font-size:20px;line-height:1}
-  details[open] summary::after{content:'–'}
-  details p{color:var(--mut);margin:10px 0 0;font-size:15px}
-
-  footer{padding:28px 0 50px;color:var(--mut);font-size:13.5px;text-align:center}
+  details {
+    border: 1px solid var(--line); border-radius: 12px; padding: 0 16px; margin: 10px 0; background: #fff;
+  }
+  details[open] { padding-bottom: 14px; }
+  summary {
+    cursor: pointer; font-weight: 600; padding: 14px 0; list-style: none;
+    display: flex; justify-content: space-between; align-items: center; gap: 10px;
+  }
+  summary::-webkit-details-marker { display: none; }
+  summary::after { content: '+'; font-size: 20px; color: var(--muted); line-height: 1; }
+  details[open] summary::after { content: '–'; }
+  details p, details ol, details ul { margin-top: 0; }
 
   /* ---------- уведомление ---------- */
-  #toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(20px);background:var(--acc);color:var(--accTxt);padding:10px 18px;border-radius:999px;font-weight:600;font-size:14px;opacity:0;pointer-events:none;transition:opacity .25s,transform .25s;z-index:99}
-  #toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+  .toast {
+    position: fixed; left: 50%; bottom: 24px; transform: translate(-50%, 20px);
+    background: #111827; color: #fff; padding: 12px 18px; border-radius: 12px;
+    font-size: 14.5px; font-weight: 500; box-shadow: 0 10px 30px rgba(0,0,0,.25);
+    opacity: 0; pointer-events: none; transition: opacity .25s, transform .25s;
+    max-width: calc(100% - 32px); text-align: center; z-index: 100;
+  }
+  .toast.show { opacity: 1; transform: translate(-50%, 0); }
 
-  @media (max-width:560px){
-    header.hero{padding:40px 0 28px}
-    .btns .btn{flex:1 1 100%}
-    .steps li{padding-left:16px;padding-top:58px}
-    .steps li::before{left:16px;top:14px}
+  footer { text-align: center; color: var(--muted); font-size: 13px; padding: 20px 0 40px; }
+
+  @media (max-width: 640px) {
+    .top h1 { font-size: 21px; }
+    section { padding: 20px 18px; }
+    .actions .btn { flex: 1; }
+    .toc a { padding: 12px 10px; font-size: 13px; }
   }
 </style>
 </head>
 <body>
 
-<header class="hero">
+<header class="top">
   <div class="wrap">
-    <span class="badge">v1.9.0</span><span class="badge">Tampermonkey</span><span class="badge">school.mos.ru</span>
-    <h1>МЭШ Layout Editor + Theme Studio PRO</h1>
-    <p class="lead">Визуальный редактор для «Московской электронной школы»: переставляйте блоки, меняйте текст и картинки, включайте стеклянный стиль, тёмную тему, анимации, музыку и свой шрифт. Работает на компьютере и телефоне.</p>
-    <div class="btns">
-      <button class="btn primary" id="btnCopyTop" type="button">Копировать код</button>
-      <button class="btn" id="btnDownloadTop" type="button">Скачать .user.js</button>
-      <a class="btn" href="#install">Инструкция</a>
+    <div>
+      <h1>МЭШ Layout Editor + Theme Studio PRO</h1>
+      <p class="sub">Установка через Tampermonkey</p>
+      <div class="badges">
+        <span>v1.9.1</span>
+        <span>Tampermonkey</span>
+        <span>school.mos.ru</span>
+      </div>
+    </div>
+    <div class="actions">
+      <button id="btnCopyTop" class="btn primary" type="button">Копировать код</button>
+      <button id="btnDownloadTop" class="btn" type="button">Скачать .user.js</button>
     </div>
   </div>
 </header>
 
 <nav class="toc">
   <div class="wrap">
-    <a href="#install">1. Установка</a>
-    <a href="#tampermonkey">2. Tampermonkey</a>
-    <a href="#script">3. Скрипт</a>
-    <a href="#usage">4. Использование</a>
-    <a href="#faq">5. Проблемы</a>
+    <ul>
+      <li><a href="#install">1. Что понадобится</a></li>
+      <li><a href="#tampermonkey">2. Tampermonkey</a></li>
+      <li><a href="#script">3. Установка скрипта</a></li>
+      <li><a href="#usage">4. Использование</a></li>
+      <li><a href="#faq">5. Проблемы</a></li>
+    </ul>
   </div>
 </nav>
 
 <main class="wrap">
 
-  <!-- ===================== 1. ОБЩЕЕ ===================== -->
+  <!-- 1 -->
   <section id="install">
     <h2>1. Что понадобится</h2>
-    <p class="sub">Скрипт работает как расширение-«надстройка»: браузер запускает его на странице school.mos.ru. Нужны два пункта:</p>
-    <div class="card">
-      <div class="kv"><span>Браузер</span><span>Chrome, Edge, Яндекс.Браузер, Opera, Firefox</span></div>
-      <div class="kv"><span>Расширение Tampermonkey</span><span>бесплатное, ставится за одну минуту</span></div>
-      <div class="kv"><span>Аккаунт МЭШ</span><span>обычный вход на school.mos.ru</span></div>
-    </div>
-    <div class="note"><b>Важно:</b> скрипт ничего не отправляет на сторонние серверы. Все настройки хранятся в самом браузере.</div>
+    <ul>
+      <li>Компьютер с браузером: Chrome, Яндекс Браузер, Edge, Firefox или Opera. На телефоне подойдёт Kiwi Browser или Firefox для Android.</li>
+      <li>Доступ к сайту <a href="https://school.mos.ru" target="_blank" rel="noopener">school.mos.ru</a>.</li>
+      <li>Расширение <b>Tampermonkey</b>. Это бесплатный менеджер пользовательских скриптов.</li>
+      <li>Около 5 минут.</li>
+    </ul>
+    <p class="muted">Скрипт работает на адресах <code>https://school.mos.ru/*</code> и <code>https://*.mos.ru/*</code>.</p>
   </section>
 
-  <!-- ===================== 2. TAMPERMONKEY ===================== -->
+  <!-- 2 -->
   <section id="tampermonkey">
     <h2>2. Установите Tampermonkey</h2>
-    <p class="sub">Выберите свой браузер и нажмите на ссылку — откроется официальный магазин расширений.</p>
-    <div class="browsers">
-      <a href="https://chromewebstore.google.com/detail/tampermonkey/dhdgffkkebhmkfjojejmpbldmpobfkfo" target="_blank" rel="noopener">
-        <b>Chrome / Яндекс / Edge</b><span>Chrome Web Store</span>
+    <p>Выберите свой браузер и установите расширение из официального магазина:</p>
+    <div class="grid">
+      <a class="store" href="https://chromewebstore.google.com/detail/tampermonkey/dhdgffkkebhmkfjojejmpbldmpobfkfo" target="_blank" rel="noopener">
+        <b>Chrome, Яндекс, Edge</b><span>Chrome Web Store</span>
       </a>
-      <a href="https://addons.mozilla.org/firefox/addon/tampermonkey/" target="_blank" rel="noopener">
-        <b>Firefox</b><span>addons.mozilla.org</span>
+      <a class="store" href="https://addons.mozilla.org/firefox/addon/tampermonkey/" target="_blank" rel="noopener">
+        <b>Firefox</b><span>Mozilla Add-ons</span>
       </a>
-      <a href="https://addons.opera.com/extensions/details/tampermonkey-beta/" target="_blank" rel="noopener">
-        <b>Opera</b><span>addons.opera.com</span>
+      <a class="store" href="https://addons.opera.com/extensions/details/tampermonkey-beta/" target="_blank" rel="noopener">
+        <b>Opera</b><span>Opera Add-ons</span>
       </a>
-      <a href="https://play.google.com/store/apps/details?id=com.tampermonkey.browser" target="_blank" rel="noopener">
-        <b>Телефон (Android)</b><span>Kiwi / Firefox + Tampermonkey</span>
+      <a class="store" href="https://play.google.com/store/apps/details?id=com.tampermonkey.browser" target="_blank" rel="noopener">
+        <b>Android</b><span>Kiwi / Firefox + Tampermonkey</span>
       </a>
     </div>
-    <div class="note">
-      <b>Chrome, Яндекс и Edge (новые версии):</b> если скрипт не запускается, откройте <code>chrome://extensions</code> (или <code>edge://extensions</code>), включите <b>«Режим разработчика»</b>, затем в настройках Tampermonkey включите <b>«Режим пользовательского скрипта»</b> (или «User scripts»).
-    </div>
+    <p>После установки в правом верхнем углу браузера появится значок Tampermonkey.</p>
+
+    <h3>Chrome, Яндекс и Edge: включите режим разработчика</h3>
+    <p>Без этого шага Tampermonkey может не принимать пользовательские скрипты.</p>
+    <ol>
+      <li>Откройте страницу <code>chrome://extensions</code> (в Edge — <code>edge://extensions</code>).</li>
+      <li>Включите переключатель <b>«Режим разработчика»</b>.</li>
+      <li>Откройте настройки Tampermonkey и включите <b>«Режим пользовательского скрипта»</b>.</li>
+    </ol>
   </section>
 
-  <!-- ===================== 3. УСТАНОВКА СКРИПТА ===================== -->
+  <!-- 3 -->
   <section id="script">
-    <h2>3. Добавьте скрипт в Tampermonkey</h2>
-    <p class="sub">Два способа: вставить код вручную (рекомендуется) или скачать файл и импортировать его.</p>
+    <h2>3. Установка скрипта</h2>
+    <p>Выберите один из двух способов. Первый быстрее.</p>
 
     <h3>Способ А — вставить код (рекомендуется)</h3>
     <ol class="steps">
-      <li>
-        <h3>Откройте панель Tampermonkey</h3>
-        <p>Нажмите на иконку <b>Tampermonkey</b> в правом верхнем углу браузера (значок «пазла», если он спрятан) и выберите <b>«Панель управления»</b> / <b>Dashboard</b>.</p>
-      </li>
-      <li>
-        <h3>Создайте новый скрипт</h3>
-        <p>Перейдите на вкладку с символом <kbd>+</kbd> (создать новый скрипт). Откроется редактор с шаблонным текстом.</p>
-      </li>
-      <li>
-        <h3>Скопируйте код этой страницы</h3>
-        <p>Нажмите кнопку <b>«Копировать код»</b> ниже или вверху страницы. Появится уведомление «Код скопирован».</p>
-      </li>
-      <li>
-        <h3>Вставьте код в редактор</h3>
-        <p>В редакторе Tampermonkey выделите весь шаблон: <kbd>Ctrl</kbd>+<kbd>A</kbd> (на Mac: <kbd>⌘</kbd>+<kbd>A</kbd>), удалите его и вставьте код: <kbd>Ctrl</kbd>+<kbd>V</kbd>.</p>
-      </li>
-      <li>
-        <h3>Сохраните</h3>
-        <p>Нажмите <kbd>Ctrl</kbd>+<kbd>S</kbd> или кнопку <b>File → Save</b>. Скрипт появится в списке и будет включён (переключатель зелёный).</p>
-      </li>
-      <li>
-        <h3>Откройте МЭШ</h3>
-        <p>Перейдите на <code>school.mos.ru</code> и обновите страницу (<kbd>F5</kbd>). В правом верхнем углу появится кнопка <b>«Редактор»</b>.</p>
-      </li>
+      <li>Нажмите значок Tampermonkey и откройте <b>«Панель управления»</b>.</li>
+      <li>Нажмите <b>«+»</b> (создать новый скрипт).</li>
+      <li>Удалите весь стандартный текст в редакторе.</li>
+      <li>Нажмите кнопку <b>«Копировать код»</b> в этом разделе (или вверху страницы) и вставьте текст в редактор (<kbd>Ctrl</kbd>+<kbd>V</kbd>, на Mac — <kbd>⌘</kbd>+<kbd>V</kbd>).</li>
+      <li>Сохраните: <kbd>Ctrl</kbd>+<kbd>S</kbd> (на Mac — <kbd>⌘</kbd>+<kbd>S</kbd>) или кнопка «Файл → Сохранить».</li>
     </ol>
 
     <h3>Способ Б — скачать файл и импортировать</h3>
     <ol class="steps">
-      <li>
-        <h3>Скачайте файл</h3>
-        <p>Нажмите <b>«Скачать .user.js»</b> ниже. Сохранится файл <code>mes-layout-editor.user.js</code>.</p>
-      </li>
-      <li>
-        <h3>Импортируйте в Tampermonkey</h3>
-        <p>Откройте <b>Панель управления</b> → вкладка <b>«Утилиты»</b> (Utilities) → раздел <b>Import</b> → <b>Выбрать файл</b> и укажите скачанный файл. Подтвердите установку кнопкой <b>Install</b>.</p>
-      </li>
+      <li>Нажмите <b>«Скачать .user.js»</b> (вверху страницы или в этом разделе). Файл называется <code>mes-layout-editor.user.js</code>.</li>
+      <li>Откройте <b>«Панель управления»</b> Tampermonkey и перейдите на вкладку <b>«Утилиты»</b>.</li>
+      <li>В разделе <b>Import</b> нажмите <b>«Выбрать файл»</b> и укажите скачанный файл.</li>
+      <li>Нажмите <b>«Install»</b> (установить) и подтвердите установку.</li>
     </ol>
 
     <h3 id="code">Код скрипта</h3>
+    <p class="muted">Код можно просмотреть, скопировать или скачать отдельным файлом. Полный текст раскрывается кнопкой.</p>
     <div class="codebar">
-      <span class="meta">Версия 1.9.0 · примерно 35 КБ · без внешних библиотек</span>
-      <div class="btns">
-        <button class="btn primary" id="btnCopy" type="button">Копировать код</button>
-        <button class="btn" id="btnDownload" type="button">Скачать .user.js</button>
-      </div>
+      <button id="btnCopy" class="btn primary small" type="button">Копировать код</button>
+      <button id="btnDownload" class="btn small" type="button">Скачать .user.js</button>
+      <button id="btnToggle" class="btn small" type="button">Показать весь код</button>
     </div>
-    <div class="codebox collapsed" id="codebox"><pre id="codeView"></pre></div>
-    <div class="btns toggle-code">
-      <button class="btn" id="btnToggle" type="button">Показать весь код</button>
+    <div id="codebox" class="codebox collapsed">
+      <pre id="codeView"></pre>
+    </div>
+
+    <div class="note">
+      <strong>Проверка.</strong> Откройте <a href="https://school.mos.ru" target="_blank" rel="noopener">school.mos.ru</a>. В правом верхнем углу должна появиться кнопка <b>«Редактор»</b>. Если её нет, см. раздел 5.
     </div>
   </section>
 
-  <!-- ===================== 4. ИСПОЛЬЗОВАНИЕ ===================== -->
+  <!-- 4 -->
   <section id="usage">
     <h2>4. Как пользоваться</h2>
-    <p class="sub">Откройте школьный дневник или расписание и нажмите кнопку <b>«Редактор»</b> в правом верхнем углу.</p>
 
-    <div class="grid2">
-      <div class="card">
-        <h3 style="margin-top:0">Раскладка</h3>
-        <div class="kv"><span>Выбрать элемент</span><span>клик по нему</span></div>
-        <div class="kv"><span>Выбрать весь блок</span><span><kbd>Alt</kbd> + клик или «Весь блок»</span></div>
-        <div class="kv"><span>Переместить</span><span>перетащите мышью или <kbd>↑</kbd> <kbd>↓</kbd></span></div>
-        <div class="kv"><span>Скрыть элемент</span><span>переключатель «Скрыть»</span></div>
-        <div class="kv"><span>Заменить текст</span><span>поле «Текст части»</span></div>
-        <div class="kv"><span>Заменить картинку</span><span>файлом или ссылкой</span></div>
-      </div>
-      <div class="card">
-        <h3 style="margin-top:0">Оформление</h3>
-        <div class="kv"><span>Фон</span><span>цвет, градиент, картинка, видео</span></div>
-        <div class="kv"><span>Стекло</span><span>прозрачные карточки с размытием</span></div>
-        <div class="kv"><span>Тёмная тема</span><span>или «Как в системе»</span></div>
-        <div class="kv"><span>Анимация</span><span>плавно, справа, масштаб</span></div>
-        <div class="kv"><span>Эффекты</span><span>снег, дождь, звёзды</span></div>
-        <div class="kv"><span>Шрифт</span><span>свой файл .ttf / .woff2</span></div>
-      </div>
+    <div class="note">
+      <strong>Что нового в 1.9.1:</strong> стекло без мерцания; исправлены белые плашки и ромбики и цвет текста в тёмной теме; анимация при листании; замена картинок; захват блоков целиком; свой шрифт; режим экономии для телефонов.
     </div>
 
-    <h3>Горячие клавиши и советы</h3>
-    <div class="card">
-      <div class="kv"><span><kbd>Esc</kbd></span><span>выйти из режима редактирования</span></div>
-      <div class="kv"><span><kbd>Ctrl</kbd> + <kbd>↑</kbd> / <kbd>↓</kbd></span><span>переместить блок целиком</span></div>
-      <div class="kv"><span>Экспорт / Импорт</span><span>сохраните свои настройки в файл и переносите на другое устройство</span></div>
-      <div class="kv"><span>Сброс</span><span>кнопка «Сброс» удаляет все настройки этой страницы</span></div>
-    </div>
-    <div class="note ok"><b>Совет:</b> на телефоне включён режим экономии — внешний вид тот же, но меньше нагрузка на процессор и память.</div>
+    <h3>Режим редактирования</h3>
+    <ol>
+      <li>Нажмите <b>«Редактор»</b> в правом верхнем углу. Откроется панель <b>«МЭШ Studio»</b>, а элементы страницы подсветятся.</li>
+      <li>Кликните по элементу. Он выделится, и на панели появятся его настройки.</li>
+      <li>Чтобы переставить элемент, зажмите его мышью и перетащите на новое место.</li>
+      <li>Чтобы выйти из режима, нажмите <kbd>Esc</kbd> или кнопку <b>«Готово»</b>.</li>
+    </ol>
+
+    <h3>Выделение и перемещение</h3>
+    <ul>
+      <li><b>«Весь блок»</b> на панели или <kbd>Alt</kbd>+клик выделяет список целиком, например все уроки. Так блок можно перетащить, скрыть или сдвинуть.</li>
+      <li><kbd>↑</kbd> / <kbd>↓</kbd> сдвигают выделенный элемент на одну позицию.</li>
+      <li><kbd>Ctrl</kbd>+<kbd>↑</kbd> / <kbd>Ctrl</kbd>+<kbd>↓</kbd> переносят элемент в начало или в конец своего родителя.</li>
+      <li>Кнопка <b>«↑ Родитель»</b> выбирает элемент, в который вложен текущий.</li>
+      <li>Блок «Структура блока» разбирает выделенный блок на части: текст, время, кабинет, кнопку, картинку. Нажмите на часть, чтобы выбрать её отдельно.</li>
+    </ul>
+
+    <h3>Вкладка «Раскладка»</h3>
+    <ul>
+      <li><b>Скрыть элемент</b> и <b>порядок</b> в списке.</li>
+      <li><b>Текст части</b>: новый текст заменяет такой же текст во всём интерфейсе (например, название предмета или кабинет).</li>
+      <li><b>Изображение</b>: замена файлом или ссылкой. Большие фото уменьшаются автоматически.</li>
+      <li><b>Внешний вид</b>: ширина, цвет фона, цвет текста, скругление углов.</li>
+      <li><b>Сбросить элемент</b> возвращает исходный вид.</li>
+    </ul>
+
+    <h3>Вкладка «Оформление»</h3>
+    <ul>
+      <li><b>Фон</b>: цвет, градиент, картинка или видео по ссылке.</li>
+      <li><b>Тема и стекло</b>: тёмная тема, автоматическая тема по системе, эффект стекла с настраиваемыми прозрачностью и размытием.</li>
+      <li><b>Анимация появления</b>: плавно, справа или масштаб. Работает при загрузке и при листании.</li>
+      <li><b>Музыка и звук</b>: фоновая музыка и звук нажатия на кнопки.</li>
+      <li><b>Эффекты</b>: снег, дождь, звёзды.</li>
+      <li><b>Шрифт</b>: файл шрифта с компьютера или название из Google Fonts, а также размер текста.</li>
+      <li><b>«Пересканировать страницу»</b> заново проверяет цвета элементов, если какой-то блок выглядит неправильно.</li>
+    </ul>
+
+    <h3>Сохранение настроек</h3>
+    <p>Настройки сохраняются в браузере автоматически. Кнопка <b>«Экспорт»</b> сохраняет их в файл <code>.json</code>, а <b>«Импорт»</b> загружает обратно, например на другом компьютере. Кнопка <b>«Сброс»</b> удаляет все настройки для сайта МЭШ.</p>
   </section>
 
-  <!-- ===================== 5. FAQ ===================== -->
+  <!-- 5 -->
   <section id="faq">
     <h2>5. Если что-то не работает</h2>
-    <p class="sub">Самые частые вопросы.</p>
 
     <details>
-      <summary>Кнопки «Редактор» нет на странице</summary>
-      <p>Проверьте, что скрипт включён в Панели управления Tampermonkey (переключатель зелёный). Адрес должен начинаться с <code>school.mos.ru</code>. Обновите страницу клавишей <kbd>F5</kbd>. Если не помогло — проверьте, что Tampermonkey включён для этого сайта в значке расширения.</p>
-    </details>
-    <details>
-      <summary>В Chrome / Яндекс / Edge скрипт не запускается</summary>
-      <p>Включите «Режим разработчика» на странице расширений и «Режим пользовательского скрипта» в настройках Tampermonkey. Затем перезапустите браузер.</p>
-    </details>
-    <details>
-      <summary>Ошибка при вставке кода или «Syntax error»</summary>
-      <p>Скорее всего, в редакторе остался старый шаблон. Выделите весь текст <kbd>Ctrl</kbd>+<kbd>A</kbd>, удалите и вставьте код заново. Строка <code>// ==UserScript==</code> должна быть самой первой.</p>
-    </details>
-    <details>
-      <summary>Сайт стал тормозить</summary>
-      <p>Выключите «Эффект стекла», снег / дождь и видеофон во вкладке «Оформление». Для слабых устройств включите «Снизить нагрузку» в эффектах.</p>
-    </details>
-    <details>
-      <summary>Настройки пропали после очистки браузера</summary>
-      <p>Заранее сохраняйте резервную копию кнопкой «Экспорт» (файл JSON). После переустановки используйте «Импорт».</p>
-    </details>
-    <details>
-      <summary>Картинки или музыка не сохраняются</summary>
-      <p>Проверьте, что браузер не блокирует хранилище сайта и не работает в режиме «Инкогнито» (там данные не сохраняются после закрытия окна). Большие файлы сжимаются автоматически.</p>
+      <summary>Не появилась кнопка «Редактор»</summary>
+      <ul>
+        <li>Обновите страницу (<kbd>F5</kbd>) и подождите пару секунд.</li>
+        <li>Проверьте, что значок Tampermonkey показывает активный скрипт, а его переключатель включён.</li>
+        <li>Убедитесь, что вы находитесь на <code>school.mos.ru</code> или другом адресе <code>*.mos.ru</code>.</li>
+        <li>Для Chrome, Яндекса и Edge проверьте, что включены «Режим разработчика» и «Режим пользовательского скрипта».</li>
+      </ul>
     </details>
 
-    <div class="note err"><b>Не меняйте текст скрипта</b> вручную без необходимости: при ошибке в коде страница может перестать загружаться корректно. Для возврата к исходной версии используйте файл, скачанный на этой странице.</div>
+    <details>
+      <summary>Настройки пропали</summary>
+      <p>Настройки хранятся в браузере для конкретного профиля. Они пропадут, если очистить данные сайтов или переключиться на другой профиль. Чтобы не потерять настройки, регулярно делайте <b>«Экспорт»</b> на панели редактора.</p>
+    </details>
+
+    <details>
+      <summary>Как обновить скрипт до версии 1.9.1</summary>
+      <p>Откройте Tampermonkey, выберите скрипт «МЭШ Layout Editor + Theme Studio PRO» и вставьте новый код поверх старого (способ А) или импортируйте новый файл (способ Б). Сохранённые настройки обычно остаются.</p>
+    </details>
+
+    <details>
+      <summary>Тёмная тема: блок выглядит белым или текст плохо виден</summary>
+      <p>Откройте <b>«Редактор» → «Оформление»</b> и нажмите <b>«Пересканировать страницу»</b>. Если страница сильно изменилась после загрузки, это тоже поможет.</p>
+    </details>
+
+    <details>
+      <summary>Страница тормозит или работает медленно на телефоне</summary>
+      <p>Режим экономии включается автоматически на телефонах и слабых устройствах. Его можно дополнительно включить в разделе «Эффекты» (<b>«Снизить нагрузку»</b>). Отключите снег и дождь, если тормозит. Большие фоновые картинки лучше заменить на небольшие.</p>
+    </details>
+
+    <details>
+      <summary>Кнопка «Копировать код» не работает</summary>
+      <p>Некоторые браузеры запрещают копирование без разрешения. Тогда появится сообщение «Не удалось скопировать — выделите код вручную». Откройте блок кода, нажмите в нём и выделите весь текст (<kbd>Ctrl</kbd>+<kbd>A</kbd>), затем скопируйте (<kbd>Ctrl</kbd>+<kbd>C</kbd>). Или используйте кнопку «Скачать .user.js».</p>
+    </details>
   </section>
 
 </main>
 
 <footer>
-  <div class="wrap">МЭШ Layout Editor + Theme Studio PRO · v1.9.0 · Сайт-инструкция для установки через Tampermonkey</div>
+  МЭШ Layout Editor + Theme Studio PRO · v1.9.1 · Сайт-инструкция для установки через Tampermonkey
 </footer>
 
-<div id="toast"></div>
+<div id="toast" class="toast" role="status" aria-live="polite"></div>
 
+<!-- Исходный код скрипта. Не меняйте текст внутри: отсюда он копируется и скачивается. -->
+<script type="text/plain" id="script-src">
 // ==UserScript==
 // @name         МЭШ Layout Editor + Theme Studio PRO
 // @namespace    meshlayout
@@ -1970,65 +2048,114 @@
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
   else boot();
 })();
-
 </script>
 
 <script>
 (function () {
-  const src = document.getElementById('script-src').textContent.replace(/^\r?\n/, '');
-  const codeView = document.getElementById('codeView');
-  const codebox = document.getElementById('codebox');
-  const toggleBtn = document.getElementById('btnToggle');
-  const toast = document.getElementById('toast');
+  'use strict';
+
+  var SCRIPT_NAME = 'mes-layout-editor.user.js';
+  var src = document.getElementById('script-src').textContent;
+  var codeView = document.getElementById('codeView');
+  var codebox = document.getElementById('codebox');
+  var btnToggle = document.getElementById('btnToggle');
+  var toastEl = document.getElementById('toast');
+  var toastTimer = 0;
+
   codeView.textContent = src;
 
-  let toastT;
-  function showToast(msg) {
-    toast.textContent = msg; toast.classList.add('show');
-    clearTimeout(toastT); toastT = setTimeout(() => toast.classList.remove('show'), 2200);
+  function toast(msg) {
+    toastEl.textContent = msg;
+    toastEl.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { toastEl.classList.remove('show'); }, 2800);
   }
 
-  async function copyText(text) {
-    try { await navigator.clipboard.writeText(text); return true; }
-    catch (e) {
-      const ta = document.createElement('textarea');
-      ta.value = text; ta.setAttribute('readonly', ''); ta.style.position = 'fixed'; ta.style.opacity = '0';
-      document.body.appendChild(ta); ta.select();
-      let ok = false; try { ok = document.execCommand('copy'); } catch (_) {}
-      ta.remove(); return ok;
+  function flash(btn) {
+    if (!btn) return;
+    if (!btn.dataset.label) btn.dataset.label = btn.textContent;
+    btn.textContent = 'Скопировано ✓';
+    btn.classList.add('done');
+    clearTimeout(btn._t);
+    btn._t = setTimeout(function () {
+      btn.textContent = btn.dataset.label;
+      btn.classList.remove('done');
+    }, 2000);
+  }
+
+  function fallbackCopy(text) {
+    var ta = document.createElement('textarea');
+    ta.value = text;
+    ta.setAttribute('readonly', '');
+    ta.style.position = 'fixed';
+    ta.style.top = '0';
+    ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.select();
+    var ok = false;
+    try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+    document.body.removeChild(ta);
+    return ok;
+  }
+
+  function onCopied(ok, btn) {
+    if (ok) {
+      toast('Код скопирован — вставьте его в Tampermonkey');
+      flash(btn);
+    } else {
+      toast('Не удалось скопировать — выделите код вручную');
     }
   }
 
-  async function onCopy(btn) {
-    const ok = await copyText(src);
-    if (ok) {
-      showToast('Код скопирован — вставьте его в Tampermonkey');
-      const old = btn.textContent; btn.classList.add('done'); btn.textContent = 'Скопировано ✓';
-      setTimeout(() => { btn.classList.remove('done'); btn.textContent = old; }, 1800);
-    } else showToast('Не удалось скопировать — выделите код вручную');
+  function copyCode(btn) {
+    if (navigator.clipboard && window.isSecureContext) {
+      navigator.clipboard.writeText(src).then(
+        function () { onCopied(true, btn); },
+        function () { onCopied(fallbackCopy(src), btn); }
+      );
+    } else {
+      onCopied(fallbackCopy(src), btn);
+    }
   }
 
-  function download() {
-    const blob = new Blob([src], { type: 'text/javascript;charset=utf-8' });
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = 'mes-layout-editor.user.js';
-    document.body.appendChild(a); a.click(); a.remove();
-    setTimeout(() => URL.revokeObjectURL(a.href), 4000);
-    showToast('Файл скачан — импортируйте его в Tampermonkey');
+  function downloadCode() {
+    var blob = new Blob([src], { type: 'text/javascript;charset=utf-8' });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = SCRIPT_NAME;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(function () { URL.revokeObjectURL(url); }, 4000);
+    toast('Файл скачан — импортируйте его в Tampermonkey');
   }
 
-  document.getElementById('btnCopy').onclick = e => onCopy(e.currentTarget);
-  document.getElementById('btnCopyTop').onclick = e => onCopy(e.currentTarget);
-  document.getElementById('btnDownload').onclick = download;
-  document.getElementById('btnDownloadTop').onclick = download;
+  function toggleCode() {
+    codebox.classList.toggle('collapsed');
+    var open = !codebox.classList.contains('collapsed');
+    btnToggle.textContent = open ? 'Свернуть код' : 'Показать весь код';
+  }
 
-  toggleBtn.onclick = () => {
-    const collapsed = codebox.classList.toggle('collapsed');
-    toggleBtn.textContent = collapsed ? 'Показать весь код' : 'Свернуть код';
-    if (!collapsed) codebox.scrollIntoView({ behavior: 'smooth', block: 'center' });
-  };
+  document.getElementById('btnCopyTop').addEventListener('click', function () { copyCode(this); });
+  document.getElementById('btnCopy').addEventListener('click', function () { copyCode(this); });
+  document.getElementById('btnDownloadTop').addEventListener('click', downloadCode);
+  document.getElementById('btnDownload').addEventListener('click', downloadCode);
+  btnToggle.addEventListener('click', toggleCode);
+
+  // подсветка активного раздела в навигации
+  var links = Array.prototype.slice.call(document.querySelectorAll('.toc a'));
+  var sections = links.map(function (a) { return document.querySelector(a.getAttribute('href')); });
+  function markActive() {
+    var y = window.scrollY + 140;
+    var idx = 0;
+    sections.forEach(function (s, i) { if (s && s.offsetTop <= y) idx = i; });
+    links.forEach(function (a, i) { a.classList.toggle('active', i === idx); });
+  }
+  window.addEventListener('scroll', markActive, { passive: true });
+  markActive();
 })();
 </script>
+
 </body>
 </html>
